@@ -1,0 +1,270 @@
+{
+  "id": "individual-parent",
+  "name": "Individual Parent Flow",
+  "description": "Signup flow for parents/homeschool teachers setting up an account for their child",
+  "category": "individual",
+  "targetPortal": "student",
+  "entryScreenId": "social-proof",
+  "variables": [
+    { "id": "role", "name": "User Role", "type": "string", "defaultValue": "parent" },
+    { "id": "childName", "name": "Child's Name", "type": "string" },
+    { "id": "experienceLevel", "name": "Experience Level", "type": "string" },
+    { "id": "techSkills", "name": "Tech Skills Level", "type": "string" },
+    { "id": "screenTimeConcern", "name": "Screen Time Concern", "type": "string" },
+    { "id": "barrier", "name": "Barrier to Practice", "type": "string" },
+    { "id": "dailyGoal", "name": "Daily Goal", "type": "string" },
+    { "id": "motivation", "name": "Motivation", "type": "string" },
+    { "id": "discovery", "name": "Discovery Source", "type": "string" }
+  ],
+  "screens": [
+    {
+      "id": "social-proof",
+      "type": "social-proof",
+      "title": "Social Proof",
+      "variants": {
+        "parent": {
+          "headline": "Great choice!",
+          "copy": "You are joining 50 million parents, homeschoolers, teachers and students who trust Typing.com."
+        }
+      },
+      "defaultVariant": "parent",
+      "roleVariable": "role",
+      "nextScreenId": "experience-level"
+    },
+    {
+      "id": "experience-level",
+      "type": "question",
+      "title": "Experience Level",
+      "question": "What is your child's typing experience level?",
+      "options": [
+        { "id": "new", "label": "Brand New" },
+        { "id": "dabbles", "label": "Dabbles / Hunts & Pecks" },
+        { "id": "fluent", "label": "Fluent" }
+      ],
+      "variableBinding": "experienceLevel",
+      "nextScreenId": "experience-level-affirmation"
+    },
+    {
+      "id": "experience-level-affirmation",
+      "type": "social-proof",
+      "title": "Curriculum Match",
+      "variants": {
+        "default": {
+          "headline": "Perfect!",
+          "copy": "Typing.com has standards-aligned curriculum for every typing level."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "tech-skills"
+    },
+    {
+      "id": "tech-skills",
+      "type": "question",
+      "title": "Tech Skills Assessment",
+      "question": "How would you rate their current Tech Literacy, Online Safety, and Coding skills?",
+      "options": [
+        { "id": "beginner", "label": "Beginner/None" },
+        { "id": "intermediate", "label": "Intermediate" },
+        { "id": "advanced", "label": "Advanced" }
+      ],
+      "variableBinding": "techSkills",
+      "nextScreenId": "tech-skills-affirmation"
+    },
+    {
+      "id": "tech-skills-affirmation",
+      "type": "social-proof",
+      "title": "Future-Ready Skills",
+      "variants": {
+        "default": {
+          "headline": "Building the future!",
+          "copy": "Our curriculum is designed specifically to build these future-ready skills, including Beyond Typing modules in our PLUS plan."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "screen-time"
+    },
+    {
+      "id": "screen-time",
+      "type": "question",
+      "title": "Screen Time Concern",
+      "question": "What is your biggest concern regarding screen time?",
+      "options": [
+        { "id": "ads", "label": "Exposure to Ads/Tracking" },
+        { "id": "focus", "label": "Lack of Focus" },
+        { "id": "wasting", "label": "Wasting Time" },
+        { "id": "safety", "label": "Safety" }
+      ],
+      "variableBinding": "screenTimeConcern",
+      "nextScreenId": "screen-time-affirmation"
+    },
+    {
+      "id": "screen-time-affirmation",
+      "type": "social-proof",
+      "title": "Safe Learning",
+      "variants": {
+        "default": {
+          "headline": "Understood!",
+          "copy": "That's why PLUS is 100% Ad-Free—eliminating distractions for safe, focused learning."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "barriers"
+    },
+    {
+      "id": "barriers",
+      "type": "question",
+      "title": "Barriers to Practice",
+      "question": "What usually stops them from practicing?",
+      "options": [
+        { "id": "distractions", "label": "Distractions/Ads" },
+        { "id": "boredom", "label": "Boredom" },
+        { "id": "time", "label": "Lack of Time" }
+      ],
+      "variableBinding": "barrier",
+      "nextScreenId": "barriers-affirmation"
+    },
+    {
+      "id": "barriers-affirmation",
+      "type": "social-proof",
+      "title": "Focus Mode",
+      "variants": {
+        "default": {
+          "headline": "We get it!",
+          "copy": "That's why PLUS removes all video ads to keep them focused."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "daily-goal"
+    },
+    {
+      "id": "daily-goal",
+      "type": "question",
+      "title": "Daily Practice Goal",
+      "question": "How much time will they be able to use Typing.com?",
+      "options": [
+        { "id": "5min", "label": "5 Minutes" },
+        { "id": "15min", "label": "15 Minutes" },
+        { "id": "30min", "label": "30 Minutes" }
+      ],
+      "variableBinding": "dailyGoal",
+      "nextScreenId": "daily-goal-affirmation"
+    },
+    {
+      "id": "daily-goal-affirmation",
+      "type": "social-proof",
+      "title": "Tracker Activated",
+      "variants": {
+        "default": {
+          "headline": "Great!",
+          "copy": "We have a Daily Goal tracker to keep them accountable."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "motivation"
+    },
+    {
+      "id": "motivation",
+      "type": "question",
+      "title": "Select Motivation",
+      "question": "What motivates them to learn a new skill?",
+      "options": [
+        { "id": "fun", "label": "Fun & Games" },
+        { "id": "grades", "label": "Grades" },
+        { "id": "rewards", "label": "Rewards" },
+        { "id": "competition", "label": "Competition" }
+      ],
+      "variableBinding": "motivation",
+      "nextScreenId": "motivation-affirmation"
+    },
+    {
+      "id": "motivation-affirmation",
+      "type": "social-proof",
+      "title": "Gamification",
+      "variants": {
+        "default": {
+          "headline": "Perfect match!",
+          "copy": "Typing.com uses gamified learning to keep them engaged."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "discovery"
+    },
+    {
+      "id": "discovery",
+      "type": "question",
+      "title": "Discovery",
+      "question": "Where did you hear about us?",
+      "options": [
+        { "id": "teacher", "label": "Teacher" },
+        { "id": "friend", "label": "Friend/Classmate" },
+        { "id": "social", "label": "Social Media" },
+        { "id": "search", "label": "Search Engine" }
+      ],
+      "variableBinding": "discovery",
+      "nextScreenId": "child-name"
+    },
+    {
+      "id": "child-name",
+      "type": "input",
+      "title": "Child's Name",
+      "prompt": "What is your child's first name?",
+      "helpText": "So we can personalize their plan",
+      "inputType": "text",
+      "placeholder": "Enter first name",
+      "variableBinding": "childName",
+      "validation": {
+        "required": true,
+        "minLength": 1
+      },
+      "nextScreenId": "plan-analysis"
+    },
+    {
+      "id": "plan-analysis",
+      "type": "interstitial",
+      "title": "Plan Analysis",
+      "headline": "Building Their Plan",
+      "animation": "progress-bar",
+      "duration": 5000,
+      "messages": [
+        { "text": "Assessing [childName]'s [experienceLevel] typing level...", "delay": 0 },
+        { "text": "Calibrating [techSkills] tech literacy modules...", "delay": 700 },
+        { "text": "Addressing your concern about [screenTimeConcern]...", "delay": 1400 },
+        { "text": "Tackling [barrier] with distraction-free practice...", "delay": 2100 },
+        { "text": "Configuring Ad-Free environment for safe learning...", "delay": 2800 },
+        { "text": "Activating [motivation]-based engagement...", "delay": 3500 },
+        { "text": "Setting [dailyGoal] daily practice target...", "delay": 4200 },
+        { "text": "Generating [childName]'s personalized roadmap...", "delay": 4600 }
+      ],
+      "nextScreenId": "account-creation"
+    },
+    {
+      "id": "account-creation",
+      "type": "account-creation",
+      "title": "Account Creation",
+      "headline": "Save Your Custom Plan",
+      "copy": "We've generated your child's personalized roadmap. Create a free account for your child to save these results so you don't lose them.",
+      "collectFields": ["email", "password"],
+      "showSocialLogin": true,
+      "socialProviders": ["google", "apple"],
+      "nextScreenId": "paywall"
+    },
+    {
+      "id": "paywall",
+      "type": "paywall",
+      "title": "PLUS Offer",
+      "headline": "Unlock the Full Experience for [childName]",
+      "valuePropositions": [
+        "Premium Content: Instant access to all Tech Literacy, Digital Citizenship, and Coding units.",
+        "Zero Distractions: 100% Ad-Free for safe, focused learning."
+      ],
+      "primaryAction": {
+        "label": "Upgrade to PLUS",
+        "nextScreenId": null
+      },
+      "secondaryAction": {
+        "label": "I'm OK with Ads",
+        "nextScreenId": null
+      }
+    }
+  ]
+}

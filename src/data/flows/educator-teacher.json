@@ -1,0 +1,348 @@
+{
+  "id": "educator-teacher",
+  "name": "Educator Teacher Flow",
+  "description": "Signup flow for teachers who manage their own classroom",
+  "category": "educator",
+  "targetPortal": "teacher",
+  "entryScreenId": "gatekeeper",
+  "variables": [
+    { "id": "role", "name": "User Role", "type": "string", "defaultValue": "teacher" },
+    { "id": "state", "name": "State", "type": "string" },
+    { "id": "gradeLevels", "name": "Grade Levels", "type": "array" },
+    { "id": "studentCount", "name": "Student Count", "type": "string" },
+    { "id": "contentNeeds", "name": "Content Needs", "type": "string" },
+    { "id": "rosteringMethod", "name": "Rostering Method", "type": "string" },
+    { "id": "adImportance", "name": "Ad Importance", "type": "string" },
+    { "id": "hasAccessibility", "name": "Has Accessibility Needs", "type": "boolean" },
+    { "id": "device", "name": "Device", "type": "string" },
+    { "id": "discovery", "name": "Discovery Source", "type": "string" }
+  ],
+  "screens": [
+    {
+      "id": "gatekeeper",
+      "type": "gatekeeper",
+      "title": "Welcome",
+      "question": "What is your role in education?",
+      "options": [
+        { "id": "teacher", "label": "Teacher (I manage my own classroom)", "nextScreenId": "social-proof" },
+        { "id": "school-admin", "label": "School Administrator (I manage a school building)", "nextScreenId": null },
+        { "id": "district-admin", "label": "District Administrator (I manage multiple schools/district)", "nextScreenId": null }
+      ],
+      "roleVariable": "role",
+      "nextScreenId": "social-proof"
+    },
+    {
+      "id": "social-proof",
+      "type": "social-proof",
+      "title": "Social Proof",
+      "variants": {
+        "teacher": {
+          "headline": "Great!",
+          "copy": "You are joining 50 million teachers, students, and parents who trust Typing.com."
+        }
+      },
+      "defaultVariant": "teacher",
+      "roleVariable": "role",
+      "nextScreenId": "confirm-location"
+    },
+    {
+      "id": "confirm-location",
+      "type": "confirm-location",
+      "title": "Confirm Location",
+      "question": "We detected you're in [state]. Is this correct?",
+      "detectedStateVariable": "state",
+      "confirmationMessage": "Great. We'll align your curriculum to [state] standards.",
+      "variableBinding": "state",
+      "nextScreenId": "confirm-location-affirmation"
+    },
+    {
+      "id": "confirm-location-affirmation",
+      "type": "social-proof",
+      "title": "Standards Alignment",
+      "variants": {
+        "default": {
+          "headline": "Great!",
+          "copy": "We'll align your curriculum to [state] standards."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "grade-level"
+    },
+    {
+      "id": "grade-level",
+      "type": "multi-select",
+      "title": "Select Grade Level",
+      "question": "What grade levels do you teach?",
+      "options": [
+        { "id": "k-2", "label": "K-2" },
+        { "id": "3-5", "label": "3-5" },
+        { "id": "6-8", "label": "6-8" },
+        { "id": "9-12", "label": "9-12" }
+      ],
+      "variableBinding": "gradeLevels",
+      "nextScreenId": "grade-level-affirmation"
+    },
+    {
+      "id": "grade-level-affirmation",
+      "type": "social-proof",
+      "title": "Standards Alignment",
+      "variants": {
+        "default": {
+          "headline": "Excellent!",
+          "copy": "We have curriculum aligned specifically to [state] standards for those grades."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "student-count"
+    },
+    {
+      "id": "student-count",
+      "type": "question",
+      "title": "Student Count",
+      "question": "How many students do you teach?",
+      "options": [
+        { "id": "1-30", "label": "1-30 students" },
+        { "id": "31-60", "label": "31-60 students" },
+        { "id": "61-100", "label": "61-100 students" },
+        { "id": "100+", "label": "100+ students" }
+      ],
+      "variableBinding": "studentCount",
+      "nextScreenId": "student-count-affirmation"
+    },
+    {
+      "id": "student-count-affirmation",
+      "type": "social-proof",
+      "title": "Scalability",
+      "variants": {
+        "default": {
+          "headline": "Perfect!",
+          "copy": "Tools to manage student counts of any size… live tracking, progress reports, and more."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "content-needs"
+    },
+    {
+      "id": "content-needs",
+      "type": "question",
+      "title": "Content Needs",
+      "question": "Beyond typing, what other skills are you looking to teach?",
+      "options": [
+        { "id": "coding", "label": "Coding/Computer Basics" },
+        { "id": "citizenship", "label": "Digital Citizenship" },
+        { "id": "career", "label": "Career Prep" },
+        { "id": "typing", "label": "Just Typing" }
+      ],
+      "variableBinding": "contentNeeds",
+      "nextScreenId": "content-needs-affirmation"
+    },
+    {
+      "id": "content-needs-affirmation",
+      "type": "social-proof",
+      "title": "Value Add",
+      "variants": {
+        "default": {
+          "headline": "Perfect choice!",
+          "copy": "Our PLUS license unlocks a full Tech Literacy curriculum, not just keyboarding."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "rostering"
+    },
+    {
+      "id": "rostering",
+      "type": "branch",
+      "title": "Rostering",
+      "question": "How do you want your students to log in?",
+      "options": [
+        { "id": "google-ms", "label": "Google/Microsoft Classroom" },
+        { "id": "class-code", "label": "Class Code/Username" },
+        { "id": "clever-sync", "label": "Clever Secure Sync" },
+        { "id": "clever-library", "label": "Clever Library" },
+        { "id": "classlink", "label": "ClassLink" }
+      ],
+      "variableBinding": "rosteringMethod",
+      "branches": [
+        {
+          "id": "sso-clever",
+          "conditions": [{ "variable": "rosteringMethod", "operator": "equals", "value": "clever-sync" }],
+          "targetScreenId": "sso-handoff",
+          "label": "Clever Sync"
+        },
+        {
+          "id": "sso-classlink",
+          "conditions": [{ "variable": "rosteringMethod", "operator": "equals", "value": "classlink" }],
+          "targetScreenId": "sso-handoff",
+          "label": "ClassLink"
+        }
+      ],
+      "defaultNextScreenId": "rostering-affirmation",
+      "nextScreenId": "rostering-affirmation"
+    },
+    {
+      "id": "rostering-affirmation",
+      "type": "social-proof",
+      "title": "Ease of Use",
+      "variants": {
+        "default": {
+          "headline": "Seamless integration!",
+          "copy": "We sync seamlessly with [rosteringMethod] so you don't have to manually manage passwords."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "learning-environment"
+    },
+    {
+      "id": "learning-environment",
+      "type": "question",
+      "title": "Learning Environment",
+      "question": "How important is removing ads to your classroom management?",
+      "options": [
+        { "id": "very", "label": "Very Important" },
+        { "id": "somewhat", "label": "Somewhat Important" },
+        { "id": "not", "label": "Not a Priority" }
+      ],
+      "variableBinding": "adImportance",
+      "nextScreenId": "learning-environment-affirmation"
+    },
+    {
+      "id": "learning-environment-affirmation",
+      "type": "social-proof",
+      "title": "Distraction Removal",
+      "variants": {
+        "default": {
+          "headline": "Understood!",
+          "copy": "PLUS removes all ads to keep students in a focused 'flow state'."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "accessibility"
+    },
+    {
+      "id": "accessibility",
+      "type": "question",
+      "title": "Accessibility",
+      "question": "Do you have students who require accessibility accommodations (IEP/504)?",
+      "options": [
+        { "id": "yes", "label": "Yes" },
+        { "id": "no", "label": "No" }
+      ],
+      "variableBinding": "hasAccessibility",
+      "nextScreenId": "accessibility-affirmation"
+    },
+    {
+      "id": "accessibility-affirmation",
+      "type": "social-proof",
+      "title": "Inclusivity",
+      "variants": {
+        "default": {
+          "headline": "Every student succeeds!",
+          "copy": "We provide WCAG 2.2 AA-compliant themes, audio dictation, and one-handed settings to ensure every student succeeds."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "device"
+    },
+    {
+      "id": "device",
+      "type": "question",
+      "title": "Device",
+      "question": "What device(s) will your students use to access Typing.com?",
+      "options": [
+        { "id": "chromebooks", "label": "Chromebooks" },
+        { "id": "ipads", "label": "iPads/Tablets" },
+        { "id": "windows-mac", "label": "Windows/Mac" },
+        { "id": "mixed", "label": "Mixed" }
+      ],
+      "variableBinding": "device",
+      "nextScreenId": "device-affirmation"
+    },
+    {
+      "id": "device-affirmation",
+      "type": "social-proof",
+      "title": "Device Compatibility",
+      "variants": {
+        "default": {
+          "headline": "Awesome!",
+          "copy": "Typing.com is designed to work on [device] without issue!"
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "discovery"
+    },
+    {
+      "id": "discovery",
+      "type": "question",
+      "title": "Discovery",
+      "question": "How did you hear about Typing.com?",
+      "options": [
+        { "id": "colleague", "label": "Colleague" },
+        { "id": "conference", "label": "Conference/PD" },
+        { "id": "social", "label": "Social Media" },
+        { "id": "search", "label": "Search Engine" },
+        { "id": "district", "label": "District Recommendation" }
+      ],
+      "variableBinding": "discovery",
+      "nextScreenId": "plan-analysis"
+    },
+    {
+      "id": "plan-analysis",
+      "type": "interstitial",
+      "title": "Plan Analysis",
+      "headline": "Building Your Classroom Plan",
+      "animation": "progress-bar",
+      "duration": 5000,
+      "messages": [
+        { "text": "Confirming [state] standards alignment...", "delay": 0 },
+        { "text": "Loading curriculum for grades [gradeLevels]...", "delay": 600 },
+        { "text": "Preparing roster for [studentCount] students...", "delay": 1200 },
+        { "text": "Adding [contentNeeds] modules...", "delay": 1800 },
+        { "text": "Configuring [rosteringMethod] sync...", "delay": 2400 },
+        { "text": "Optimizing for [adImportance] ad-free priority...", "delay": 3000 },
+        { "text": "Enabling accessibility accommodations...", "delay": 3600 },
+        { "text": "Verifying [device] compatibility...", "delay": 4200 },
+        { "text": "Building your classroom plan...", "delay": 4600 }
+      ],
+      "nextScreenId": "account-creation"
+    },
+    {
+      "id": "account-creation",
+      "type": "account-creation",
+      "title": "Account Creation",
+      "headline": "Your Classroom is Ready.",
+      "copy": "Create your free account to save your classroom settings and view your Ad-Free quote.",
+      "collectFields": ["email", "password"],
+      "showSocialLogin": true,
+      "socialProviders": ["google", "microsoft"],
+      "nextScreenId": "paywall"
+    },
+    {
+      "id": "paywall",
+      "type": "paywall",
+      "title": "PLUS Offer",
+      "headline": "Unlock the Full Classroom Experience",
+      "valuePropositions": [
+        "Full Coding, Digital Citizenship, and Typing curriculum",
+        "Ad-free environment for focused learning",
+        "Student progress tracking and reports"
+      ],
+      "primaryAction": {
+        "label": "Upgrade to PLUS",
+        "nextScreenId": null
+      },
+      "secondaryAction": {
+        "label": "Continue with Free",
+        "nextScreenId": null
+      }
+    },
+    {
+      "id": "sso-handoff",
+      "type": "sso-handoff",
+      "title": "SSO Handoff",
+      "headline": "Great!",
+      "copy": "Since your school uses [rosteringMethod], your account setup is managed there—not here. Ask your IT administrator to add Typing.com in your [rosteringMethod] dashboard. Once added, you and your students can log in instantly using your existing school credentials.",
+      "providerVariable": "rosteringMethod",
+      "actionLabel": "Got it"
+    }
+  ]
+}

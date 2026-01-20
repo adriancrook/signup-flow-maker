@@ -1,0 +1,275 @@
+{
+  "id": "individual-student",
+  "name": "Individual Student Flow",
+  "description": "Signup flow for students learning independently (no classroom code)",
+  "category": "individual",
+  "targetPortal": "student",
+  "entryScreenId": "gatekeeper",
+  "variables": [
+    { "id": "role", "name": "User Role", "type": "string", "defaultValue": "student" },
+    { "id": "purpose", "name": "Purpose", "type": "string" },
+    { "id": "currentWpm", "name": "Current WPM", "type": "number" },
+    { "id": "targetSpeed", "name": "Target Speed", "type": "string" },
+    { "id": "barrier", "name": "Barrier to Practice", "type": "string" },
+    { "id": "motivation", "name": "Motivation", "type": "string" },
+    { "id": "discovery", "name": "Discovery Source", "type": "string" },
+    { "id": "dailyGoal", "name": "Daily Goal", "type": "string" }
+  ],
+  "screens": [
+    {
+      "id": "gatekeeper",
+      "type": "gatekeeper",
+      "title": "Welcome",
+      "question": "How will you use Typing.com?",
+      "options": [
+        { "id": "student", "label": "I'm a student", "nextScreenId": "class-code-check" },
+        { "id": "parent", "label": "I'm a parent/homeschool teacher, setting up an account for my child", "nextScreenId": null },
+        { "id": "adult", "label": "I'm an adult, learning for myself", "nextScreenId": null }
+      ],
+      "roleVariable": "role",
+      "nextScreenId": "class-code-check"
+    },
+    {
+      "id": "class-code-check",
+      "type": "question",
+      "title": "Class Code",
+      "question": "Do you have a class code from your teacher?",
+      "options": [
+        { "id": "yes", "label": "Yes" },
+        { "id": "no", "label": "No" }
+      ],
+      "nextScreenId": "social-proof"
+    },
+    {
+      "id": "social-proof",
+      "type": "social-proof",
+      "title": "Social Proof",
+      "variants": {
+        "student": {
+          "headline": "Great choice!",
+          "copy": "You are joining 50 million students, parents, and teachers who trust Typing.com."
+        }
+      },
+      "defaultVariant": "student",
+      "roleVariable": "role",
+      "nextScreenId": "purpose-assessment"
+    },
+    {
+      "id": "purpose-assessment",
+      "type": "question",
+      "title": "Purpose Assessment",
+      "question": "Why are you looking to improve your typing today?",
+      "options": [
+        { "id": "school", "label": "Success in School/College" },
+        { "id": "tech", "label": "Tech & Coding Interests" },
+        { "id": "fun", "label": "Just for Fun & Games" },
+        { "id": "growth", "label": "Personal Growth" }
+      ],
+      "variableBinding": "purpose",
+      "nextScreenId": "purpose-affirmation"
+    },
+    {
+      "id": "purpose-affirmation",
+      "type": "social-proof",
+      "title": "Goal Confirmed",
+      "variants": {
+        "default": {
+          "headline": "Great goal!",
+          "copy": "Many students use our premium coding and test prep units to get ahead."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "typing-test"
+    },
+    {
+      "id": "typing-test",
+      "type": "typing-test",
+      "title": "Typing Test",
+      "prompt": "Let's get a baseline. Type the sentence below:",
+      "testText": "The quick brown fox jumps over the lazy dog.",
+      "variableBindings": {
+        "wpm": "currentWpm"
+      },
+      "nextScreenId": "growth-affirmation"
+    },
+    {
+      "id": "growth-affirmation",
+      "type": "social-proof",
+      "title": "Project Growth",
+      "variants": {
+        "default": {
+          "headline": "Great start!",
+          "copy": "You clocked in at [currentWpm] WPM. We can 2x that speed with practice."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "target-speed"
+    },
+    {
+      "id": "target-speed",
+      "type": "question",
+      "title": "Target Speed",
+      "question": "What is your target typing speed?",
+      "options": [
+        { "id": "40wpm", "label": "40 WPM" },
+        { "id": "60wpm", "label": "60 WPM" },
+        { "id": "80wpm", "label": "80 WPM" },
+        { "id": "100wpm", "label": "100+ WPM" }
+      ],
+      "variableBinding": "targetSpeed",
+      "nextScreenId": "target-speed-affirmation"
+    },
+    {
+      "id": "target-speed-affirmation",
+      "type": "social-proof",
+      "title": "Goal Set",
+      "variants": {
+        "default": {
+          "headline": "We've got you!",
+          "copy": "We'll track your progress every step of the way to ensure you hit that goal."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "barriers"
+    },
+    {
+      "id": "barriers",
+      "type": "question",
+      "title": "Barriers to Practice",
+      "question": "What usually stops you from practicing?",
+      "options": [
+        { "id": "distractions", "label": "Distractions/Ads" },
+        { "id": "boredom", "label": "Boredom" },
+        { "id": "time", "label": "Lack of Time" }
+      ],
+      "variableBinding": "barrier",
+      "nextScreenId": "barriers-affirmation"
+    },
+    {
+      "id": "barriers-affirmation",
+      "type": "social-proof",
+      "title": "Focus Mode",
+      "variants": {
+        "default": {
+          "headline": "We get it!",
+          "copy": "That's why PLUS removes all video ads to keep you focused."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "motivation"
+    },
+    {
+      "id": "motivation",
+      "type": "question",
+      "title": "Select Motivation",
+      "question": "What keeps you motivated when you're learning?",
+      "options": [
+        { "id": "streaks", "label": "Streaks" },
+        { "id": "games", "label": "Games" },
+        { "id": "progress", "label": "Progress Tracking" }
+      ],
+      "variableBinding": "motivation",
+      "nextScreenId": "motivation-affirmation"
+    },
+    {
+      "id": "motivation-affirmation",
+      "type": "social-proof",
+      "title": "Gamification",
+      "variants": {
+        "default": {
+          "headline": "Perfect match!",
+          "copy": "Typing.com uses gamified learning to keep you engaged."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "discovery"
+    },
+    {
+      "id": "discovery",
+      "type": "question",
+      "title": "Discovery",
+      "question": "Where did you hear about us?",
+      "options": [
+        { "id": "teacher", "label": "Teacher" },
+        { "id": "friend", "label": "Friend/Classmate" },
+        { "id": "social", "label": "Social Media" },
+        { "id": "search", "label": "Search Engine" }
+      ],
+      "variableBinding": "discovery",
+      "nextScreenId": "daily-goal"
+    },
+    {
+      "id": "daily-goal",
+      "type": "question",
+      "title": "Daily Practice Goal",
+      "question": "How much time can you commit to practicing each day?",
+      "options": [
+        { "id": "5min", "label": "5 Minutes" },
+        { "id": "15min", "label": "15 Minutes" },
+        { "id": "30min", "label": "30 Minutes" }
+      ],
+      "variableBinding": "dailyGoal",
+      "nextScreenId": "daily-goal-affirmation"
+    },
+    {
+      "id": "daily-goal-affirmation",
+      "type": "social-proof",
+      "title": "Tracker Activated",
+      "variants": {
+        "default": {
+          "headline": "Daily Goal tracker activated!",
+          "copy": "Consistency is the secret to doubling your speed."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "plan-analysis"
+    },
+    {
+      "id": "plan-analysis",
+      "type": "interstitial",
+      "title": "Plan Analysis",
+      "headline": "Building Your Plan",
+      "animation": "progress-bar",
+      "duration": 4000,
+      "messages": [
+        { "text": "Measuring your baseline of [currentWpm] WPM...", "delay": 0 },
+        { "text": "Setting your target to [targetSpeed]...", "delay": 600 },
+        { "text": "Optimizing curriculum for [purpose]...", "delay": 1200 },
+        { "text": "Tackling [barrier] with distraction-free practice...", "delay": 1800 },
+        { "text": "Activating [motivation] to keep you engaged...", "delay": 2400 },
+        { "text": "Scheduling [dailyGoal] of daily practice...", "delay": 3000 },
+        { "text": "Finalizing your personalized roadmap...", "delay": 3600 }
+      ],
+      "nextScreenId": "account-creation"
+    },
+    {
+      "id": "account-creation",
+      "type": "account-creation",
+      "title": "Account Creation",
+      "headline": "Your Customized Typing Plan is Ready!",
+      "copy": "We've built a roadmap to help you reach your [targetSpeed] goal. Create your account to save these settings and start your first lesson.",
+      "collectFields": ["email", "password", "firstName"],
+      "showSocialLogin": true,
+      "socialProviders": ["google", "apple"],
+      "nextScreenId": "paywall"
+    },
+    {
+      "id": "paywall",
+      "type": "paywall",
+      "title": "PLUS Offer",
+      "headline": "Unlock the Full Experience",
+      "valuePropositions": [
+        "Premium Content: Instant access to all Test Prep, Creative Writing, and Coding units.",
+        "Zero Distractions: Remove all ads to stay in a \"flow state\" while you practice."
+      ],
+      "primaryAction": {
+        "label": "Upgrade to PLUS",
+        "nextScreenId": null
+      },
+      "secondaryAction": {
+        "label": "I'm OK with Ads",
+        "nextScreenId": null
+      }
+    }
+  ]
+}

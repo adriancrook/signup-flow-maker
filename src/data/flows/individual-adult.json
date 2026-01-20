@@ -1,0 +1,266 @@
+{
+  "id": "individual-adult",
+  "name": "Individual Adult Flow",
+  "description": "Signup flow for adults learning typing for themselves",
+  "category": "individual",
+  "targetPortal": "student",
+  "entryScreenId": "primary-goal",
+  "variables": [
+    { "id": "role", "name": "User Role", "type": "string", "defaultValue": "adult" },
+    { "id": "primaryGoal", "name": "Primary Goal", "type": "string" },
+    { "id": "needsCertificate", "name": "Needs Certificate", "type": "boolean" },
+    { "id": "currentWpm", "name": "Current WPM", "type": "number" },
+    { "id": "targetSpeed", "name": "Target Speed", "type": "string" },
+    { "id": "barrier", "name": "Barrier to Practice", "type": "string" },
+    { "id": "motivation", "name": "Motivation", "type": "string" },
+    { "id": "dailyGoal", "name": "Daily Goal", "type": "string" },
+    { "id": "discovery", "name": "Discovery Source", "type": "string" }
+  ],
+  "screens": [
+    {
+      "id": "primary-goal",
+      "type": "question",
+      "title": "Select Primary Goal",
+      "question": "What is your primary goal today?",
+      "options": [
+        { "id": "learn", "label": "I want to learn proper technique from scratch." },
+        { "id": "boost", "label": "I want to boost my existing speed and accuracy." },
+        { "id": "test", "label": "I just want to take a quick typing test." }
+      ],
+      "variableBinding": "primaryGoal",
+      "nextScreenId": "social-proof"
+    },
+    {
+      "id": "social-proof",
+      "type": "social-proof",
+      "title": "Social Proof",
+      "variants": {
+        "adult": {
+          "headline": "Great choice!",
+          "copy": "You are joining 50 million professionals, teachers, and students who trust Typing.com."
+        }
+      },
+      "defaultVariant": "adult",
+      "roleVariable": "role",
+      "nextScreenId": "certificate-need"
+    },
+    {
+      "id": "certificate-need",
+      "type": "question",
+      "title": "Verify Needs",
+      "question": "Do you need a certificate of your WPM for work?",
+      "options": [
+        { "id": "yes", "label": "Yes" },
+        { "id": "no", "label": "No" }
+      ],
+      "variableBinding": "needsCertificate",
+      "nextScreenId": "certificate-affirmation"
+    },
+    {
+      "id": "certificate-affirmation",
+      "type": "social-proof",
+      "title": "Proof of Performance",
+      "variants": {
+        "default": {
+          "headline": "Verifiable credentials!",
+          "copy": "We provide verifiable certificates authenticating your performance for employers."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "typing-test"
+    },
+    {
+      "id": "typing-test",
+      "type": "typing-test",
+      "title": "Typing Test",
+      "prompt": "Let's get a baseline. Type the sentence below:",
+      "testText": "The quick brown fox jumps over the lazy dog.",
+      "variableBindings": {
+        "wpm": "currentWpm"
+      },
+      "nextScreenId": "growth-affirmation"
+    },
+    {
+      "id": "growth-affirmation",
+      "type": "social-proof",
+      "title": "Project Growth",
+      "variants": {
+        "default": {
+          "headline": "Great start!",
+          "copy": "You clocked in at [currentWpm] WPM. We can 2x that speed with practice."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "target-speed"
+    },
+    {
+      "id": "target-speed",
+      "type": "question",
+      "title": "Target Speed",
+      "question": "What is your target typing speed?",
+      "options": [
+        { "id": "40wpm", "label": "40 WPM" },
+        { "id": "60wpm", "label": "60 WPM" },
+        { "id": "80wpm", "label": "80 WPM" },
+        { "id": "100wpm", "label": "100+ WPM" }
+      ],
+      "variableBinding": "targetSpeed",
+      "nextScreenId": "target-speed-affirmation"
+    },
+    {
+      "id": "target-speed-affirmation",
+      "type": "social-proof",
+      "title": "Goal Set",
+      "variants": {
+        "default": {
+          "headline": "We've got you!",
+          "copy": "We'll track your progress every step of the way to ensure you hit that goal."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "barriers"
+    },
+    {
+      "id": "barriers",
+      "type": "question",
+      "title": "Barriers to Practice",
+      "question": "What usually stops you from practicing?",
+      "options": [
+        { "id": "distractions", "label": "Distractions/Ads" },
+        { "id": "boredom", "label": "Boredom" },
+        { "id": "time", "label": "Lack of Time" }
+      ],
+      "variableBinding": "barrier",
+      "nextScreenId": "barriers-affirmation"
+    },
+    {
+      "id": "barriers-affirmation",
+      "type": "social-proof",
+      "title": "Flow State",
+      "variants": {
+        "default": {
+          "headline": "We get it!",
+          "copy": "That's why PLUS removes all video ads to keep you in a 'Flow State'."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "motivation"
+    },
+    {
+      "id": "motivation",
+      "type": "question",
+      "title": "Select Motivation",
+      "question": "What keeps you motivated when you're learning?",
+      "options": [
+        { "id": "streaks", "label": "Streaks" },
+        { "id": "certificates", "label": "Certificates" },
+        { "id": "progress", "label": "Progress Tracking" }
+      ],
+      "variableBinding": "motivation",
+      "nextScreenId": "motivation-affirmation"
+    },
+    {
+      "id": "motivation-affirmation",
+      "type": "social-proof",
+      "title": "Engagement Tools",
+      "variants": {
+        "default": {
+          "headline": "Stay motivated!",
+          "copy": "Gamification logic built to keep you going."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "daily-goal"
+    },
+    {
+      "id": "daily-goal",
+      "type": "question",
+      "title": "Daily Practice Goal",
+      "question": "How much time can you commit?",
+      "options": [
+        { "id": "5min", "label": "5 Minutes" },
+        { "id": "15min", "label": "15 Minutes" },
+        { "id": "30min", "label": "30 Minutes" }
+      ],
+      "variableBinding": "dailyGoal",
+      "nextScreenId": "daily-goal-affirmation"
+    },
+    {
+      "id": "daily-goal-affirmation",
+      "type": "social-proof",
+      "title": "Tracker Activated",
+      "variants": {
+        "default": {
+          "headline": "Great!",
+          "copy": "We have a Daily Goal tracker to keep you accountable."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "discovery"
+    },
+    {
+      "id": "discovery",
+      "type": "question",
+      "title": "Discovery",
+      "question": "Where did you hear about us?",
+      "options": [
+        { "id": "coworker", "label": "Coworker" },
+        { "id": "friend", "label": "Friend" },
+        { "id": "social", "label": "Social Media" },
+        { "id": "search", "label": "Search Engine" }
+      ],
+      "variableBinding": "discovery",
+      "nextScreenId": "plan-analysis"
+    },
+    {
+      "id": "plan-analysis",
+      "type": "interstitial",
+      "title": "Plan Analysis",
+      "headline": "Building Your Plan",
+      "animation": "progress-bar",
+      "duration": 5000,
+      "messages": [
+        { "text": "Measuring your baseline of [currentWpm] WPM...", "delay": 0 },
+        { "text": "Setting your target to [targetSpeed]...", "delay": 700 },
+        { "text": "Optimizing for [primaryGoal]...", "delay": 1400 },
+        { "text": "Preparing verifiable certificate...", "delay": 2100 },
+        { "text": "Tackling [barrier] with Flow State mode...", "delay": 2800 },
+        { "text": "Activating [motivation] tracking...", "delay": 3500 },
+        { "text": "Setting [dailyGoal] daily commitment...", "delay": 4200 },
+        { "text": "Finalizing your personalized roadmap...", "delay": 4600 }
+      ],
+      "nextScreenId": "account-creation"
+    },
+    {
+      "id": "account-creation",
+      "type": "account-creation",
+      "title": "Account Creation",
+      "headline": "Your Customized Typing Plan is Ready!",
+      "copy": "We've built a roadmap to help you reach your [targetSpeed] goal. Create your account to save these settings and start your first lesson.",
+      "collectFields": ["email", "password", "firstName"],
+      "showSocialLogin": true,
+      "socialProviders": ["google", "apple"],
+      "nextScreenId": "paywall"
+    },
+    {
+      "id": "paywall",
+      "type": "paywall",
+      "title": "PLUS Offer",
+      "headline": "Your Typing.com PLUS plan is ready",
+      "valuePropositions": [
+        "Personalized curriculum based on your goals",
+        "Verifiable certificates for employers",
+        "Ad-free Flow State mode for maximum focus",
+        "Progress tracking and daily goal monitoring"
+      ],
+      "primaryAction": {
+        "label": "Start PLUS Today",
+        "nextScreenId": null
+      },
+      "secondaryAction": {
+        "label": "Continue with Free",
+        "nextScreenId": null
+      }
+    }
+  ]
+}

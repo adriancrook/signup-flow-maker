@@ -1,0 +1,398 @@
+{
+  "id": "educator-district-admin",
+  "name": "Educator District Admin Flow",
+  "description": "Signup flow for district administrators who manage multiple schools",
+  "category": "educator",
+  "targetPortal": "teacher",
+  "entryScreenId": "social-proof",
+  "variables": [
+    { "id": "role", "name": "User Role", "type": "string", "defaultValue": "district-admin" },
+    { "id": "state", "name": "State", "type": "string" },
+    { "id": "schoolCount", "name": "School Count", "type": "string" },
+    { "id": "rosteringMethod", "name": "Rostering Method", "type": "string" },
+    { "id": "environmentConcern", "name": "Environment Concern", "type": "string" },
+    { "id": "dpaRequired", "name": "DPA Required", "type": "boolean" },
+    { "id": "analyticsLevel", "name": "Analytics Level", "type": "string" },
+    { "id": "dataRetention", "name": "Data Retention", "type": "string" },
+    { "id": "isDualRole", "name": "Is Dual Role", "type": "boolean" },
+    { "id": "teacherContentNeeds", "name": "Teacher Content Needs", "type": "string" },
+    { "id": "teacherAccessibility", "name": "Teacher Accessibility", "type": "boolean" },
+    { "id": "discovery", "name": "Discovery Source", "type": "string" }
+  ],
+  "screens": [
+    {
+      "id": "social-proof",
+      "type": "social-proof",
+      "title": "Social Proof",
+      "variants": {
+        "district-admin": {
+          "headline": "Great choice!",
+          "copy": "You are joining hundreds of districts and 50 million users who trust Typing.com."
+        }
+      },
+      "defaultVariant": "district-admin",
+      "roleVariable": "role",
+      "nextScreenId": "confirm-location"
+    },
+    {
+      "id": "confirm-location",
+      "type": "confirm-location",
+      "title": "Confirm Location",
+      "question": "We detected you're in [state]. Is this correct?",
+      "detectedStateVariable": "state",
+      "confirmationMessage": "Great. We'll align your curriculum to [state] standards.",
+      "variableBinding": "state",
+      "nextScreenId": "confirm-location-affirmation"
+    },
+    {
+      "id": "confirm-location-affirmation",
+      "type": "social-proof",
+      "title": "Standards Alignment",
+      "variants": {
+        "default": {
+          "headline": "Great!",
+          "copy": "We'll align your curriculum to [state] standards."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "district-scope"
+    },
+    {
+      "id": "district-scope",
+      "type": "question",
+      "title": "District Scope",
+      "question": "How many schools in your district require a solution?",
+      "options": [
+        { "id": "1-5", "label": "1-5 schools" },
+        { "id": "6-15", "label": "6-15 schools" },
+        { "id": "16-30", "label": "16-30 schools" },
+        { "id": "30+", "label": "30+ schools" }
+      ],
+      "variableBinding": "schoolCount",
+      "nextScreenId": "district-scope-affirmation"
+    },
+    {
+      "id": "district-scope-affirmation",
+      "type": "social-proof",
+      "title": "Multi-Tenant Architecture",
+      "variants": {
+        "default": {
+          "headline": "Centralized control!",
+          "copy": "We provide a District Master Dashboard to manage all schools from a single login."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "rostering"
+    },
+    {
+      "id": "rostering",
+      "type": "branch",
+      "title": "Rostering",
+      "question": "What is your district's primary rostering integration?",
+      "options": [
+        { "id": "clever-sync", "label": "Clever Secure Sync" },
+        { "id": "clever-library", "label": "Clever Library" },
+        { "id": "classlink", "label": "ClassLink" },
+        { "id": "rapid-identity", "label": "Rapid Identity" },
+        { "id": "google-ms", "label": "Google/Microsoft" }
+      ],
+      "variableBinding": "rosteringMethod",
+      "branches": [
+        {
+          "id": "sso-clever",
+          "conditions": [{ "variable": "rosteringMethod", "operator": "equals", "value": "clever-sync" }],
+          "targetScreenId": "sso-handoff",
+          "label": "Clever Sync"
+        },
+        {
+          "id": "sso-classlink",
+          "conditions": [{ "variable": "rosteringMethod", "operator": "equals", "value": "classlink" }],
+          "targetScreenId": "sso-handoff",
+          "label": "ClassLink"
+        },
+        {
+          "id": "sso-rapid",
+          "conditions": [{ "variable": "rosteringMethod", "operator": "equals", "value": "rapid-identity" }],
+          "targetScreenId": "sso-handoff",
+          "label": "Rapid Identity"
+        }
+      ],
+      "defaultNextScreenId": "rostering-affirmation",
+      "nextScreenId": "rostering-affirmation"
+    },
+    {
+      "id": "rostering-affirmation",
+      "type": "social-proof",
+      "title": "Nightly Sync",
+      "variants": {
+        "default": {
+          "headline": "Certified partner!",
+          "copy": "We are a certified partner with [rosteringMethod]. We support automated nightly rostering updates."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "environment"
+    },
+    {
+      "id": "environment",
+      "type": "question",
+      "title": "Environment",
+      "question": "What is your primary concern regarding free software in schools?",
+      "options": [
+        { "id": "ads", "label": "Inappropriate Ads" },
+        { "id": "links", "label": "External Links/Distractions" },
+        { "id": "privacy", "label": "Data Privacy" },
+        { "id": "none", "label": "None" }
+      ],
+      "variableBinding": "environmentConcern",
+      "nextScreenId": "environment-affirmation"
+    },
+    {
+      "id": "environment-affirmation",
+      "type": "social-proof",
+      "title": "The Walled Garden",
+      "variants": {
+        "default": {
+          "headline": "We hear you!",
+          "copy": "That's why PLUS creates a 100% Ad-Free, Walled Garden environment to minimize risk."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "compliance"
+    },
+    {
+      "id": "compliance",
+      "type": "question",
+      "title": "Compliance",
+      "question": "Does your district require a signed Data Privacy Agreement (DPA/SOPPA)?",
+      "options": [
+        { "id": "yes", "label": "Yes, Mandatory" },
+        { "id": "no", "label": "No" }
+      ],
+      "variableBinding": "dpaRequired",
+      "nextScreenId": "compliance-affirmation"
+    },
+    {
+      "id": "compliance-affirmation",
+      "type": "social-proof",
+      "title": "Legal Safety",
+      "variants": {
+        "default": {
+          "headline": "Fully compliant!",
+          "copy": "Your PLUS plan includes a signed DPA to satisfy your legal and security teams."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "analytics"
+    },
+    {
+      "id": "analytics",
+      "type": "question",
+      "title": "Analytics",
+      "question": "Do you need oversight on usage and ROI across the district?",
+      "options": [
+        { "id": "yes", "label": "Yes, High-level views" },
+        { "id": "no", "label": "No, School-level only" }
+      ],
+      "variableBinding": "analyticsLevel",
+      "nextScreenId": "analytics-affirmation"
+    },
+    {
+      "id": "analytics-affirmation",
+      "type": "social-proof",
+      "title": "Executive Dashboard",
+      "variants": {
+        "default": {
+          "headline": "District-wide insights!",
+          "copy": "Our Admin Console provides district-wide analytics to prove utilization and ROI."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "data-retention"
+    },
+    {
+      "id": "data-retention",
+      "type": "question",
+      "title": "Data Retention",
+      "question": "Do you need to track student growth year-over-year across the district?",
+      "options": [
+        { "id": "yes", "label": "Yes, I need history" },
+        { "id": "no", "label": "No, current year only" }
+      ],
+      "variableBinding": "dataRetention",
+      "nextScreenId": "data-retention-affirmation"
+    },
+    {
+      "id": "data-retention-affirmation",
+      "type": "social-proof",
+      "title": "Unlimited History",
+      "variants": {
+        "default": {
+          "headline": "Noted!",
+          "copy": "We will enable Unlimited Data Retention for your district (removing the standard 70-day limit)."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "dual-role"
+    },
+    {
+      "id": "dual-role",
+      "type": "branch",
+      "title": "Dual Role Verification",
+      "question": "In addition to your administrative duties, do you teach any classes of your own?",
+      "options": [
+        { "id": "yes", "label": "Yes" },
+        { "id": "no", "label": "No" }
+      ],
+      "variableBinding": "isDualRole",
+      "branches": [
+        {
+          "id": "dual-role-yes",
+          "conditions": [{ "variable": "isDualRole", "operator": "equals", "value": "yes" }],
+          "targetScreenId": "dual-role-affirmation",
+          "label": "Yes - Teaches"
+        }
+      ],
+      "defaultNextScreenId": "discovery",
+      "nextScreenId": "discovery"
+    },
+    {
+      "id": "dual-role-affirmation",
+      "type": "social-proof",
+      "title": "Role Switcher",
+      "variants": {
+        "default": {
+          "headline": "Perfect!",
+          "copy": "You won't need two accounts. Our Role Switcher lets you toggle instantly between 'District Oversight' and 'Classroom Instruction' with one click."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "teacher-content-needs"
+    },
+    {
+      "id": "teacher-content-needs",
+      "type": "question",
+      "title": "Teacher Content Needs",
+      "question": "For your own students, are you looking to teach skills beyond basic typing?",
+      "options": [
+        { "id": "coding", "label": "Coding Basics" },
+        { "id": "citizenship", "label": "Digital Citizenship" },
+        { "id": "typing", "label": "Just Typing" }
+      ],
+      "variableBinding": "teacherContentNeeds",
+      "nextScreenId": "teacher-content-affirmation"
+    },
+    {
+      "id": "teacher-content-affirmation",
+      "type": "social-proof",
+      "title": "Dual Access",
+      "variants": {
+        "default": {
+          "headline": "Full access!",
+          "copy": "Your account includes full access to the PLUS Curriculum for your students, while maintaining admin privileges for the district."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "teacher-accessibility"
+    },
+    {
+      "id": "teacher-accessibility",
+      "type": "question",
+      "title": "Teacher Accessibility",
+      "question": "Do the students in your specific classes need accessibility accommodations?",
+      "options": [
+        { "id": "yes", "label": "Yes, I have specific needs" },
+        { "id": "no", "label": "No, standard is fine" }
+      ],
+      "variableBinding": "teacherAccessibility",
+      "nextScreenId": "teacher-accessibility-affirmation"
+    },
+    {
+      "id": "teacher-accessibility-affirmation",
+      "type": "social-proof",
+      "title": "Granular Control",
+      "variants": {
+        "default": {
+          "headline": "We've got you covered!",
+          "copy": "You can apply specific accessibility settings to your own roster without altering the global settings for the rest of the district."
+        }
+      },
+      "defaultVariant": "default",
+      "nextScreenId": "discovery"
+    },
+    {
+      "id": "discovery",
+      "type": "question",
+      "title": "Discovery",
+      "question": "How did you hear about Typing.com?",
+      "options": [
+        { "id": "colleague", "label": "Colleague" },
+        { "id": "conference", "label": "Conference/PD" },
+        { "id": "social", "label": "Social Media" },
+        { "id": "search", "label": "Search Engine" },
+        { "id": "district", "label": "District Recommendation" }
+      ],
+      "variableBinding": "discovery",
+      "nextScreenId": "plan-analysis"
+    },
+    {
+      "id": "plan-analysis",
+      "type": "interstitial",
+      "title": "Plan Analysis",
+      "headline": "Building Your District Plan",
+      "animation": "progress-bar",
+      "duration": 5000,
+      "messages": [
+        { "text": "Mapping [schoolCount] schools to Master Dashboard...", "delay": 0 },
+        { "text": "Verifying [rosteringMethod] protocols...", "delay": 700 },
+        { "text": "Securing [environmentConcern] protection...", "delay": 1400 },
+        { "text": "Preparing compliance documentation...", "delay": 2100 },
+        { "text": "Calibrating [analyticsLevel] reporting dashboard...", "delay": 2800 },
+        { "text": "Enabling [dataRetention] data history...", "delay": 3500 },
+        { "text": "Building your district implementation roadmap...", "delay": 4200 }
+      ],
+      "nextScreenId": "account-creation"
+    },
+    {
+      "id": "account-creation",
+      "type": "account-creation",
+      "title": "Account Creation",
+      "headline": "Your Compliant District Plan.",
+      "copy": "Solve your privacy requirements and rostering infrastructure today. Create an account to generate your implementation roadmap.",
+      "collectFields": ["email", "password"],
+      "showSocialLogin": true,
+      "socialProviders": ["google", "microsoft"],
+      "nextScreenId": "paywall"
+    },
+    {
+      "id": "paywall",
+      "type": "paywall",
+      "title": "District PLUS Quote",
+      "headline": "Your District Implementation Roadmap",
+      "valuePropositions": [
+        "100% Ad-Free, Walled Garden environment",
+        "Signed DPA/SOPPA compliance",
+        "District Master Dashboard",
+        "Automated nightly rostering",
+        "ROI analytics"
+      ],
+      "primaryAction": {
+        "label": "Request Quote",
+        "nextScreenId": null
+      },
+      "secondaryAction": {
+        "label": "Schedule Demo",
+        "nextScreenId": null
+      }
+    },
+    {
+      "id": "sso-handoff",
+      "type": "sso-handoff",
+      "title": "SSO Handoff",
+      "headline": "Great!",
+      "copy": "Since your district uses [rosteringMethod], your account setup is managed there—not here. Ask your IT administrator to add Typing.com in your [rosteringMethod] dashboard. Once added, you and your students can log in instantly using your existing school credentials.",
+      "providerVariable": "rosteringMethod",
+      "actionLabel": "Got it"
+    }
+  ]
+}
