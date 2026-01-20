@@ -513,6 +513,56 @@ export const componentTemplates: ComponentTemplate[] = [
     },
   }),
 
+  createTemplate({
+    name: "Affirmation (Simple)",
+    description: "Static affirmation message after any screen",
+    category: "feedback",
+    icon: "message-square-heart",
+    tags: ["affirmation", "feedback", "shared"],
+    isShared: true,
+    defaultScreen: {
+      type: "affirmation",
+      title: "Affirmation",
+      headline: "Great choice!",
+      copy: "You're on the right track.",
+      autoProceed: true,
+      duration: 3000,
+      position: { x: 0, y: 0 },
+    },
+  }),
+
+  createTemplate({
+    name: "Affirmation (Conditional)",
+    description: "Shows different messages based on prior selection",
+    category: "feedback",
+    icon: "message-square-heart",
+    tags: ["affirmation", "conditional", "feedback", "shared"],
+    isShared: true,
+    defaultScreen: {
+      type: "affirmation",
+      title: "Conditional Affirmation",
+      conditionVariable: "barrier",
+      variants: {
+        distractions: {
+          headline: "Focus mode activated!",
+          copy: "PLUS removes all video ads to keep you in a 'Flow State'.",
+        },
+        boredom: {
+          headline: "Gamification enabled!",
+          copy: "Our games and challenges will keep you engaged.",
+        },
+        time: {
+          headline: "Short sessions work!",
+          copy: "Even 5 minutes a day leads to real improvement.",
+        },
+      },
+      defaultVariant: "distractions",
+      autoProceed: true,
+      duration: 3000,
+      position: { x: 0, y: 0 },
+    },
+  }),
+
   // Routing Components
   createTemplate({
     name: "Branch",

@@ -6,6 +6,7 @@ import { TypingTestNode } from "./TypingTestNode";
 import { BranchNode } from "./BranchNode";
 import { InterstitialNode } from "./InterstitialNode";
 import { SocialProofNode } from "./SocialProofNode";
+import { AffirmationNode } from "./AffirmationNode";
 import { ConfirmLocationNode } from "./ConfirmLocationNode";
 import { DiscoveryNode } from "./DiscoveryNode";
 import { TerminalNode } from "./TerminalNode";
@@ -20,6 +21,7 @@ export const nodeTypes: NodeTypes = {
   branch: BranchNode,
   interstitial: InterstitialNode,
   "social-proof": SocialProofNode,
+  affirmation: AffirmationNode,
   "confirm-location": ConfirmLocationNode,
   discovery: DiscoveryNode,
   "account-creation": TerminalNode,
@@ -35,6 +37,7 @@ export {
   BranchNode,
   InterstitialNode,
   SocialProofNode,
+  AffirmationNode,
   ConfirmLocationNode,
   DiscoveryNode,
   TerminalNode,

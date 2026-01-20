@@ -37,11 +37,11 @@ function BaseNodeComponent({
         !isValid && "border-red-500"
       )}
     >
-      {/* Target Handle (input) */}
+      {/* Target Handle (input) - Left side for landscape layout */}
       {showTargetHandle && (
         <Handle
           type="target"
-          position={Position.Top}
+          position={Position.Left}
           className="!w-3 !h-3 !bg-gray-400 !border-2 !border-white"
         />
       )}
@@ -74,26 +74,26 @@ function BaseNodeComponent({
         </div>
       )}
 
-      {/* Source Handles */}
+      {/* Source Handles - Right side for landscape layout */}
       {showSourceHandle && !sourceHandles && (
         <Handle
           type="source"
-          position={Position.Bottom}
+          position={Position.Right}
           className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white"
         />
       )}
 
-      {/* Multiple source handles for options */}
+      {/* Multiple source handles for options - stacked vertically on right side */}
       {sourceHandles &&
         sourceHandles.map((handle, index) => (
           <Handle
             key={handle.id}
             type="source"
-            position={Position.Bottom}
+            position={Position.Right}
             id={handle.id}
             className="!w-2 !h-2 !bg-blue-400 !border-2 !border-white"
             style={{
-              left: `${((index + 1) / (sourceHandles.length + 1)) * 100}%`,
+              top: `${((index + 1) / (sourceHandles.length + 1)) * 100}%`,
             }}
           />
         ))}

@@ -54,11 +54,18 @@ export default function EditorPage() {
         const flowData = flowModule.default;
 
         // Add positions to screens if not present (auto-layout)
+        // Landscape-oriented layout: more columns, fewer rows (16:9 friendly)
+        const COLUMN_WIDTH = 320;  // Horizontal spacing between nodes
+        const ROW_HEIGHT = 380;    // Vertical spacing between rows
+        const COLUMNS = 6;         // More columns for landscape orientation
+        const START_X = 100;       // Left padding
+        const START_Y = 80;        // Top padding
+
         const screensWithPositions = flowData.screens.map((screen: any, index: number) => ({
           ...screen,
           position: screen.position || {
-            x: 100 + (index % 3) * 350,
-            y: 100 + Math.floor(index / 3) * 250,
+            x: START_X + (index % COLUMNS) * COLUMN_WIDTH,
+            y: START_Y + Math.floor(index / COLUMNS) * ROW_HEIGHT,
           },
         }));
 

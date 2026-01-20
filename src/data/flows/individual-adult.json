@@ -135,15 +135,26 @@
     },
     {
       "id": "barriers-affirmation",
-      "type": "social-proof",
+      "type": "affirmation",
       "title": "Flow State",
+      "conditionVariable": "barrier",
       "variants": {
-        "default": {
-          "headline": "We get it!",
-          "copy": "That's why PLUS removes all video ads to keep you in a 'Flow State'."
+        "distractions": {
+          "headline": "Focus mode activated!",
+          "copy": "PLUS removes all video ads to keep you in a 'Flow State' for maximum focus."
+        },
+        "boredom": {
+          "headline": "Never a dull moment!",
+          "copy": "Our gamified lessons and typing games will keep you engaged and motivated."
+        },
+        "time": {
+          "headline": "Short sessions, big results!",
+          "copy": "Even 5 minutes a day leads to measurable improvement. We'll help you stay consistent."
         }
       },
-      "defaultVariant": "default",
+      "defaultVariant": "distractions",
+      "autoProceed": true,
+      "duration": 4000,
       "nextScreenId": "motivation"
     },
     {
@@ -161,15 +172,26 @@
     },
     {
       "id": "motivation-affirmation",
-      "type": "social-proof",
+      "type": "affirmation",
       "title": "Engagement Tools",
+      "conditionVariable": "motivation",
       "variants": {
-        "default": {
-          "headline": "Stay motivated!",
-          "copy": "Gamification logic built to keep you going."
+        "streaks": {
+          "headline": "Streak power!",
+          "copy": "Build your streak and watch your skills grow. Don't break the chain!"
+        },
+        "certificates": {
+          "headline": "Earn your credentials!",
+          "copy": "Unlock verifiable certificates as you reach milestones to showcase your skills."
+        },
+        "progress": {
+          "headline": "Track every step!",
+          "copy": "Detailed analytics show exactly how far you've come and what's next."
         }
       },
-      "defaultVariant": "default",
+      "defaultVariant": "streaks",
+      "autoProceed": true,
+      "duration": 4000,
       "nextScreenId": "daily-goal"
     },
     {

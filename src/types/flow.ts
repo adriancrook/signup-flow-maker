@@ -12,6 +12,7 @@ export type ScreenType =
   | "branch"
   | "interstitial"
   | "social-proof"
+  | "affirmation"
   | "confirm-location"
   | "discovery"
   | "account-creation"
@@ -209,6 +210,29 @@ export interface SocialProofScreen extends BaseScreen {
   roleVariable: string;
 }
 
+// Affirmation Variant (for conditional mode)
+export interface AffirmationVariant {
+  headline: string;
+  copy: string;
+}
+
+// Affirmation Screen - displays after user actions
+// Simple mode: just headline + copy
+// Conditional mode: different messages based on a variable value (usually from prior screen)
+export interface AffirmationScreen extends BaseScreen {
+  type: "affirmation";
+  // Simple mode - used when no conditionVariable is set
+  headline?: string;
+  copy?: string;
+  // Conditional mode - variants keyed by variable value
+  conditionVariable?: string; // e.g., "barrier", "motivation"
+  variants?: Record<string, AffirmationVariant>;
+  defaultVariant?: string; // fallback variant key
+  // Display options
+  autoProceed?: boolean; // auto-advance after duration
+  duration?: number; // ms before auto-proceeding (default: 3000)
+}
+
 // Confirm Location Screen
 export interface ConfirmLocationScreen extends BaseScreen {
   type: "confirm-location";
@@ -266,6 +290,7 @@ export type Screen =
   | BranchScreen
   | InterstitialScreen
   | SocialProofScreen
+  | AffirmationScreen
   | ConfirmLocationScreen
   | DiscoveryScreen
   | AccountCreationScreen
@@ -341,6 +366,10 @@ export function isInterstitialScreen(screen: Screen): screen is InterstitialScre
 
 export function isSocialProofScreen(screen: Screen): screen is SocialProofScreen {
   return screen.type === "social-proof";
+}
+
+export function isAffirmationScreen(screen: Screen): screen is AffirmationScreen {
+  return screen.type === "affirmation";
 }
 
 export function isConfirmLocationScreen(screen: Screen): screen is ConfirmLocationScreen {
