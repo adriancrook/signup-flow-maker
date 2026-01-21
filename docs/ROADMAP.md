@@ -9,15 +9,15 @@ To build the definitive "Source of Truth" for complex user signup flows, enablin
 *Goal: Move from single-player local-storage prototype to a multi-user, safe cloud application.*
 
 *   **[ ] Database Integration (Supabase + PostgreSQL)**
-    *   Migrate generic JSON persistence to relational tables (Flows, Nodes, Versions).
+    *   [x] Migrate generic JSON persistence to relational tables (Flows, Nodes, Versions).
     *   Implement "Save Points" logic (e.g., autosave vs. explicit named versions).
     *   **Versioning & Rollback**: Complete history of flow states with one-click restore.
 *   **[ ] Authentication System**
-    *   Google OAuth / Email Login via Supabase Auth.
-    *   Concept of "Organizations" or "Teams" (Shared Workspaces).
+    *   [x] Google OAuth / Email Login via Supabase Auth.
+    *   [x] Concept of "Organizations" or "Teams" (Shared Workspaces).
     *   Role-Based Access (Viewer vs. Editor vs. Admin).
-*   **[ ] Environment Hygiene**
-    *   Separate **Staging** and **Production** databases.
+*   **[x] Environment Hygiene**
+    *   [x] Separate **Staging** and **Production** databases.
 
 ## 🚀 Phase 2: Advanced Authoring (Q1-Q2 2026)
 *Goal: Model the complex business logic realities of the existing application.*
