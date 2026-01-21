@@ -4,11 +4,11 @@ import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { MessageSquareHeart } from "lucide-react";
 import { BaseNode } from "./BaseNode";
-import type { FlowNodeData, AffirmationScreen } from "@/types/flow";
+import type { FlowNodeData, MessageScreen } from "@/types/flow";
 
 function AffirmationNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FlowNodeData;
-  const screen = nodeData.screen as AffirmationScreen;
+  const screen = nodeData.screen as MessageScreen;
 
   // Determine if this is conditional mode (has conditionVariable and variants)
   const isConditional = screen.conditionVariable && screen.variants && Object.keys(screen.variants).length > 0;
@@ -32,11 +32,10 @@ function AffirmationNodeComponent({ data, selected }: NodeProps) {
               {variantKeys.map((key) => (
                 <span
                   key={key}
-                  className={`text-[10px] rounded px-1.5 py-0.5 ${
-                    key === screen.defaultVariant
+                  className={`text-[10px] rounded px-1.5 py-0.5 ${key === screen.defaultVariant
                       ? "bg-green-200 text-green-800"
                       : "bg-gray-100 text-gray-600"
-                  }`}
+                    }`}
                 >
                   {key}
                 </span>

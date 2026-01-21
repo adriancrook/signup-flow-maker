@@ -1,275 +1,1040 @@
 {
   "id": "individual-student",
-  "name": "Individual Student Flow",
-  "description": "Signup flow for students learning independently (no classroom code)",
+  "name": "Student Flow (Non-Classroom)",
+  "description": "Signup flow for students without a class code - individual learners",
   "category": "individual",
   "targetPortal": "student",
-  "entryScreenId": "gatekeeper",
-  "variables": [
-    { "id": "role", "name": "User Role", "type": "string", "defaultValue": "student" },
-    { "id": "purpose", "name": "Purpose", "type": "string" },
-    { "id": "currentWpm", "name": "Current WPM", "type": "number" },
-    { "id": "targetSpeed", "name": "Target Speed", "type": "string" },
-    { "id": "barrier", "name": "Barrier to Practice", "type": "string" },
-    { "id": "motivation", "name": "Motivation", "type": "string" },
-    { "id": "discovery", "name": "Discovery Source", "type": "string" },
-    { "id": "dailyGoal", "name": "Daily Goal", "type": "string" }
-  ],
+  "version": "2.0.0",
+  "createdAt": "2025-01-20T00:00:00.000Z",
+  "updatedAt": "2025-01-20T00:00:00.000Z",
+  "entryScreenId": "social-proof",
   "screens": [
     {
-      "id": "gatekeeper",
-      "type": "gatekeeper",
-      "title": "Welcome",
-      "question": "How will you use Typing.com?",
-      "options": [
-        { "id": "student", "label": "I'm a student", "nextScreenId": "class-code-check" },
-        { "id": "parent", "label": "I'm a parent/homeschool teacher, setting up an account for my child", "nextScreenId": null },
-        { "id": "adult", "label": "I'm an adult, learning for myself", "nextScreenId": null }
-      ],
-      "roleVariable": "role",
-      "nextScreenId": "class-code-check"
-    },
-    {
-      "id": "class-code-check",
-      "type": "question",
-      "title": "Class Code",
-      "question": "Do you have a class code from your teacher?",
-      "options": [
-        { "id": "yes", "label": "Yes" },
-        { "id": "no", "label": "No" }
-      ],
-      "nextScreenId": "social-proof"
-    },
-    {
       "id": "social-proof",
-      "type": "social-proof",
+      "type": "MSG",
+      "tags": [
+        "social-proof"
+      ],
       "title": "Social Proof",
+      "position": {
+        "x": 100,
+        "y": 100
+      },
+      "nextScreenId": "purpose-assessment",
+      "roleVariable": "role",
       "variants": {
         "student": {
           "headline": "Great choice!",
           "copy": "You are joining 50 million students, parents, and teachers who trust Typing.com."
+        },
+        "parent": {
+          "headline": "Great choice!",
+          "copy": "You are joining 50 million parents, homeschoolers, teachers and students who trust Typing.com."
+        },
+        "adult": {
+          "headline": "Great choice!",
+          "copy": "You are joining 50 million professionals, teachers, and students who trust Typing.com."
+        },
+        "teacher": {
+          "headline": "Great!",
+          "copy": "You are joining 50 million teachers, students, and parents who trust Typing.com."
+        },
+        "school-admin": {
+          "headline": "Great choice!",
+          "copy": "You are joining thousands of schools and 50 million users who trust Typing.com."
+        },
+        "district-admin": {
+          "headline": "Great choice!",
+          "copy": "You are joining hundreds of districts and 50 million users who trust Typing.com."
         }
       },
-      "defaultVariant": "student",
-      "roleVariable": "role",
-      "nextScreenId": "purpose-assessment"
+      "defaultVariant": "student"
     },
     {
       "id": "purpose-assessment",
-      "type": "question",
+      "type": "MC",
       "title": "Purpose Assessment",
+      "position": {
+        "x": 350,
+        "y": 100
+      },
+      "nextScreenId": "purpose-affirmation",
       "question": "Why are you looking to improve your typing today?",
       "options": [
-        { "id": "school", "label": "Success in School/College" },
-        { "id": "tech", "label": "Tech & Coding Interests" },
-        { "id": "fun", "label": "Just for Fun & Games" },
-        { "id": "growth", "label": "Personal Growth" }
+        {
+          "id": "pa-school",
+          "label": "Success in School/College",
+          "value": "school"
+        },
+        {
+          "id": "pa-tech",
+          "label": "Tech & Coding Interests",
+          "value": "tech"
+        },
+        {
+          "id": "pa-fun",
+          "label": "Just for Fun & Games",
+          "value": "fun"
+        },
+        {
+          "id": "pa-growth",
+          "label": "Personal Growth",
+          "value": "growth"
+        }
       ],
-      "variableBinding": "purpose",
-      "nextScreenId": "purpose-affirmation"
+      "variableBinding": "purpose"
     },
     {
       "id": "purpose-affirmation",
-      "type": "social-proof",
-      "title": "Goal Confirmed",
-      "variants": {
-        "default": {
-          "headline": "Great goal!",
-          "copy": "Many students use our premium coding and test prep units to get ahead."
-        }
+      "type": "MSG",
+      "tags": [
+        "affirmation"
+      ],
+      "title": "Purpose Affirmation",
+      "position": {
+        "x": 600,
+        "y": 100
       },
-      "defaultVariant": "default",
-      "nextScreenId": "typing-test"
+      "nextScreenId": "typing-test",
+      "headline": "Great goal!",
+      "copy": "Many students use our premium coding and test prep units to get ahead.",
+      "autoProceed": true,
+      "duration": 3000
     },
     {
       "id": "typing-test",
-      "type": "typing-test",
-      "title": "Typing Test",
+      "type": "TEST",
+      "title": "Mini Typing Test",
+      "position": {
+        "x": 850,
+        "y": 100
+      },
+      "nextScreenId": "typing-test-affirmation",
       "prompt": "Let's get a baseline. Type the sentence below:",
       "testText": "The quick brown fox jumps over the lazy dog.",
       "variableBindings": {
-        "wpm": "currentWpm"
-      },
-      "nextScreenId": "growth-affirmation"
+        "wpm": "currentWpm",
+        "accuracy": "currentAccuracy"
+      }
     },
     {
-      "id": "growth-affirmation",
-      "type": "social-proof",
+      "id": "typing-test-affirmation",
+      "type": "MSG",
+      "tags": [
+        "affirmation"
+      ],
       "title": "Project Growth",
-      "variants": {
-        "default": {
-          "headline": "Great start!",
-          "copy": "You clocked in at [currentWpm] WPM. We can 2x that speed with practice."
-        }
+      "position": {
+        "x": 1100,
+        "y": 100
       },
-      "defaultVariant": "default",
-      "nextScreenId": "target-speed"
+      "nextScreenId": "target-speed",
+      "headline": "Nice work!",
+      "copy": "You clocked in at [currentWpm] WPM. We can 2x that speed with practice.",
+      "autoProceed": true,
+      "duration": 3000
     },
     {
       "id": "target-speed",
-      "type": "question",
+      "type": "MC",
       "title": "Target Speed",
+      "position": {
+        "x": 1350,
+        "y": 100
+      },
+      "nextScreenId": "target-speed-affirmation",
       "question": "What is your target typing speed?",
       "options": [
-        { "id": "40wpm", "label": "40 WPM" },
-        { "id": "60wpm", "label": "60 WPM" },
-        { "id": "80wpm", "label": "80 WPM" },
-        { "id": "100wpm", "label": "100+ WPM" }
+        {
+          "id": "ts-30",
+          "label": "30 WPM",
+          "value": "30"
+        },
+        {
+          "id": "ts-50",
+          "label": "50 WPM",
+          "value": "50"
+        },
+        {
+          "id": "ts-70",
+          "label": "70 WPM",
+          "value": "70"
+        },
+        {
+          "id": "ts-100",
+          "label": "100+ WPM",
+          "value": "100"
+        }
       ],
-      "variableBinding": "targetSpeed",
-      "nextScreenId": "target-speed-affirmation"
+      "variableBinding": "targetSpeed"
     },
     {
       "id": "target-speed-affirmation",
-      "type": "social-proof",
-      "title": "Goal Set",
-      "variants": {
-        "default": {
-          "headline": "We've got you!",
-          "copy": "We'll track your progress every step of the way to ensure you hit that goal."
-        }
+      "type": "MSG",
+      "tags": [
+        "affirmation"
+      ],
+      "title": "Target Speed Affirmation",
+      "position": {
+        "x": 100,
+        "y": 300
       },
-      "defaultVariant": "default",
-      "nextScreenId": "barriers"
+      "nextScreenId": "barriers",
+      "headline": "We've got you.",
+      "copy": "We'll track your progress every step of the way to ensure you hit that goal.",
+      "autoProceed": true,
+      "duration": 3000
     },
     {
       "id": "barriers",
-      "type": "question",
+      "type": "MC",
       "title": "Barriers to Practice",
-      "question": "What usually stops you from practicing?",
-      "options": [
-        { "id": "distractions", "label": "Distractions/Ads" },
-        { "id": "boredom", "label": "Boredom" },
-        { "id": "time", "label": "Lack of Time" }
-      ],
-      "variableBinding": "barrier",
-      "nextScreenId": "barriers-affirmation"
+      "position": {
+        "x": 350,
+        "y": 300
+      },
+      "nextScreenId": "barriers-affirmation",
+      "roleVariable": "role",
+      "variants": {
+        "student": {
+          "question": "What usually stops you from practicing?",
+          "options": [
+            {
+              "id": "bar-distractions",
+              "label": "Distractions/Ads",
+              "value": "distractions"
+            },
+            {
+              "id": "bar-boredom",
+              "label": "Boredom",
+              "value": "boredom"
+            },
+            {
+              "id": "bar-time",
+              "label": "Lack of Time",
+              "value": "time"
+            }
+          ]
+        },
+        "parent": {
+          "question": "What usually stops them from practicing?",
+          "options": [
+            {
+              "id": "bar-distractions",
+              "label": "Distractions/Ads",
+              "value": "distractions"
+            },
+            {
+              "id": "bar-boredom",
+              "label": "Boredom",
+              "value": "boredom"
+            },
+            {
+              "id": "bar-time",
+              "label": "Lack of Time",
+              "value": "time"
+            }
+          ]
+        },
+        "adult": {
+          "question": "What usually stops you from practicing?",
+          "options": [
+            {
+              "id": "bar-distractions",
+              "label": "Distractions/Ads",
+              "value": "distractions"
+            },
+            {
+              "id": "bar-boredom",
+              "label": "Boredom",
+              "value": "boredom"
+            },
+            {
+              "id": "bar-time",
+              "label": "Lack of Time",
+              "value": "time"
+            }
+          ]
+        }
+      },
+      "defaultVariant": "student",
+      "variableBinding": "barrier"
     },
     {
       "id": "barriers-affirmation",
-      "type": "social-proof",
-      "title": "Focus Mode",
+      "type": "MSG",
+      "tags": [
+        "affirmation"
+      ],
+      "title": "Barrier Response",
+      "position": {
+        "x": 600,
+        "y": 300
+      },
+      "nextScreenId": "motivation",
+      "conditionVariable": "barrier",
       "variants": {
-        "default": {
-          "headline": "We get it!",
+        "distractions": {
+          "headline": "We get it.",
           "copy": "That's why PLUS removes all video ads to keep you focused."
+        },
+        "boredom": {
+          "headline": "We get it.",
+          "copy": "That's why Typing.com uses gamified learning to keep you engaged."
+        },
+        "time": {
+          "headline": "We get it.",
+          "copy": "Even 5 minutes a day leads to real improvement. Our Daily Goal tracker helps build consistency."
         }
       },
-      "defaultVariant": "default",
-      "nextScreenId": "motivation"
+      "defaultVariant": "distractions",
+      "autoProceed": true,
+      "duration": 3000
     },
     {
       "id": "motivation",
-      "type": "question",
+      "type": "MC",
       "title": "Select Motivation",
-      "question": "What keeps you motivated when you're learning?",
-      "options": [
-        { "id": "streaks", "label": "Streaks" },
-        { "id": "games", "label": "Games" },
-        { "id": "progress", "label": "Progress Tracking" }
-      ],
-      "variableBinding": "motivation",
-      "nextScreenId": "motivation-affirmation"
+      "position": {
+        "x": 850,
+        "y": 300
+      },
+      "nextScreenId": "motivation-affirmation",
+      "roleVariable": "role",
+      "variants": {
+        "student": {
+          "question": "What keeps you motivated when you're learning?",
+          "options": [
+            {
+              "id": "mot-streaks",
+              "label": "Streaks",
+              "value": "streaks"
+            },
+            {
+              "id": "mot-games",
+              "label": "Games",
+              "value": "games"
+            },
+            {
+              "id": "mot-progress",
+              "label": "Progress Tracking",
+              "value": "progress"
+            }
+          ]
+        },
+        "parent": {
+          "question": "What motivates them to learn a new skill?",
+          "options": [
+            {
+              "id": "mot-fun",
+              "label": "Fun",
+              "value": "fun"
+            },
+            {
+              "id": "mot-grades",
+              "label": "Grades",
+              "value": "grades"
+            },
+            {
+              "id": "mot-games",
+              "label": "Games",
+              "value": "games"
+            }
+          ]
+        },
+        "adult": {
+          "question": "What keeps you motivated when you're learning?",
+          "options": [
+            {
+              "id": "mot-streaks",
+              "label": "Streaks",
+              "value": "streaks"
+            },
+            {
+              "id": "mot-certificates",
+              "label": "Certificates",
+              "value": "certificates"
+            },
+            {
+              "id": "mot-progress",
+              "label": "Progress Tracking",
+              "value": "progress"
+            }
+          ]
+        }
+      },
+      "defaultVariant": "student",
+      "variableBinding": "motivation"
     },
     {
       "id": "motivation-affirmation",
-      "type": "social-proof",
-      "title": "Gamification",
-      "variants": {
-        "default": {
-          "headline": "Perfect match!",
-          "copy": "Typing.com uses gamified learning to keep you engaged."
-        }
+      "type": "MSG",
+      "tags": [
+        "affirmation"
+      ],
+      "title": "Motivation Affirmation",
+      "position": {
+        "x": 1100,
+        "y": 300
       },
-      "defaultVariant": "default",
-      "nextScreenId": "discovery"
+      "nextScreenId": "discovery",
+      "headline": "Perfect!",
+      "copy": "Typing.com uses gamified learning to keep you engaged.",
+      "autoProceed": true,
+      "duration": 3000
     },
     {
       "id": "discovery",
-      "type": "question",
-      "title": "Discovery",
-      "question": "Where did you hear about us?",
-      "options": [
-        { "id": "teacher", "label": "Teacher" },
-        { "id": "friend", "label": "Friend/Classmate" },
-        { "id": "social", "label": "Social Media" },
-        { "id": "search", "label": "Search Engine" }
+      "type": "MC",
+      "tags": [
+        "discovery"
       ],
-      "variableBinding": "discovery",
-      "nextScreenId": "daily-goal"
+      "title": "Discovery",
+      "position": {
+        "x": 1350,
+        "y": 300
+      },
+      "nextScreenId": "daily-goal",
+      "roleVariable": "role",
+      "variants": {
+        "student": {
+          "question": "Where did you hear about us?",
+          "options": [
+            {
+              "id": "disc-teacher",
+              "label": "Teacher",
+              "value": "teacher"
+            },
+            {
+              "id": "disc-friend",
+              "label": "Friend/Classmate",
+              "value": "friend"
+            },
+            {
+              "id": "disc-social",
+              "label": "Social Media",
+              "value": "social-media"
+            },
+            {
+              "id": "disc-search",
+              "label": "Search Engine",
+              "value": "search"
+            }
+          ]
+        },
+        "parent": {
+          "question": "Where did you hear about us?",
+          "options": [
+            {
+              "id": "disc-teacher",
+              "label": "Teacher",
+              "value": "teacher"
+            },
+            {
+              "id": "disc-friend",
+              "label": "Friend/Classmate",
+              "value": "friend"
+            },
+            {
+              "id": "disc-social",
+              "label": "Social Media",
+              "value": "social-media"
+            },
+            {
+              "id": "disc-search",
+              "label": "Search Engine",
+              "value": "search"
+            }
+          ]
+        },
+        "adult": {
+          "question": "Where did you hear about us?",
+          "options": [
+            {
+              "id": "disc-coworker",
+              "label": "Coworker",
+              "value": "coworker"
+            },
+            {
+              "id": "disc-friend",
+              "label": "Friend",
+              "value": "friend"
+            },
+            {
+              "id": "disc-social",
+              "label": "Social Media",
+              "value": "social-media"
+            },
+            {
+              "id": "disc-search",
+              "label": "Search Engine",
+              "value": "search"
+            }
+          ]
+        },
+        "teacher": {
+          "question": "How did you hear about Typing.com?",
+          "options": [
+            {
+              "id": "disc-colleague",
+              "label": "Colleague",
+              "value": "colleague"
+            },
+            {
+              "id": "disc-conference",
+              "label": "Conference/PD",
+              "value": "conference"
+            },
+            {
+              "id": "disc-social",
+              "label": "Social Media",
+              "value": "social-media"
+            },
+            {
+              "id": "disc-search",
+              "label": "Search Engine",
+              "value": "search"
+            },
+            {
+              "id": "disc-district",
+              "label": "District Recommendation",
+              "value": "district"
+            }
+          ]
+        },
+        "school-admin": {
+          "question": "How did you hear about Typing.com?",
+          "options": [
+            {
+              "id": "disc-colleague",
+              "label": "Colleague",
+              "value": "colleague"
+            },
+            {
+              "id": "disc-conference",
+              "label": "Conference/PD",
+              "value": "conference"
+            },
+            {
+              "id": "disc-social",
+              "label": "Social Media",
+              "value": "social-media"
+            },
+            {
+              "id": "disc-search",
+              "label": "Search Engine",
+              "value": "search"
+            },
+            {
+              "id": "disc-district",
+              "label": "District Recommendation",
+              "value": "district"
+            }
+          ]
+        },
+        "district-admin": {
+          "question": "How did you hear about Typing.com?",
+          "options": [
+            {
+              "id": "disc-colleague",
+              "label": "Colleague",
+              "value": "colleague"
+            },
+            {
+              "id": "disc-conference",
+              "label": "Conference/PD",
+              "value": "conference"
+            },
+            {
+              "id": "disc-social",
+              "label": "Social Media",
+              "value": "social-media"
+            },
+            {
+              "id": "disc-search",
+              "label": "Search Engine",
+              "value": "search"
+            },
+            {
+              "id": "disc-district",
+              "label": "District Recommendation",
+              "value": "district"
+            }
+          ]
+        }
+      },
+      "defaultVariant": "student",
+      "variableBinding": "discoverySource"
     },
     {
       "id": "daily-goal",
-      "type": "question",
-      "title": "Daily Practice Goal",
-      "question": "How much time can you commit to practicing each day?",
-      "options": [
-        { "id": "5min", "label": "5 Minutes" },
-        { "id": "15min", "label": "15 Minutes" },
-        { "id": "30min", "label": "30 Minutes" }
+      "type": "MC",
+      "tags": [
+        "goal"
       ],
-      "variableBinding": "dailyGoal",
-      "nextScreenId": "daily-goal-affirmation"
+      "title": "Daily Practice Goal",
+      "position": {
+        "x": 100,
+        "y": 500
+      },
+      "nextScreenId": "daily-goal-affirmation",
+      "roleVariable": "role",
+      "variants": {
+        "student": {
+          "question": "How much time can you commit to practicing each day?",
+          "options": [
+            {
+              "id": "dg-5",
+              "label": "5 Minutes",
+              "value": "5"
+            },
+            {
+              "id": "dg-15",
+              "label": "15 Minutes",
+              "value": "15"
+            },
+            {
+              "id": "dg-30",
+              "label": "30 Minutes",
+              "value": "30"
+            }
+          ]
+        },
+        "parent": {
+          "question": "How much time will they be able to use Typing.com?",
+          "options": [
+            {
+              "id": "dg-5",
+              "label": "5 Minutes",
+              "value": "5"
+            },
+            {
+              "id": "dg-15",
+              "label": "15 Minutes",
+              "value": "15"
+            },
+            {
+              "id": "dg-30",
+              "label": "30 Minutes",
+              "value": "30"
+            }
+          ]
+        },
+        "adult": {
+          "question": "How much time can you commit?",
+          "options": [
+            {
+              "id": "dg-5",
+              "label": "5 Minutes",
+              "value": "5"
+            },
+            {
+              "id": "dg-15",
+              "label": "15 Minutes",
+              "value": "15"
+            },
+            {
+              "id": "dg-30",
+              "label": "30 Minutes",
+              "value": "30"
+            }
+          ]
+        }
+      },
+      "defaultVariant": "student",
+      "variableBinding": "dailyGoal"
     },
     {
       "id": "daily-goal-affirmation",
-      "type": "social-proof",
-      "title": "Tracker Activated",
-      "variants": {
-        "default": {
-          "headline": "Daily Goal tracker activated!",
-          "copy": "Consistency is the secret to doubling your speed."
-        }
+      "type": "MSG",
+      "tags": [
+        "affirmation"
+      ],
+      "title": "Daily Goal Affirmation",
+      "position": {
+        "x": 350,
+        "y": 500
       },
-      "defaultVariant": "default",
-      "nextScreenId": "plan-analysis"
+      "nextScreenId": "interstitial",
+      "headline": "Great commitment!",
+      "copy": "Daily Goal tracker activated. Consistency is the secret to doubling your speed.",
+      "autoProceed": true,
+      "duration": 3000
     },
     {
-      "id": "plan-analysis",
-      "type": "interstitial",
+      "id": "interstitial",
+      "type": "INT",
       "title": "Plan Analysis",
-      "headline": "Building Your Plan",
-      "animation": "progress-bar",
-      "duration": 4000,
-      "messages": [
-        { "text": "Measuring your baseline of [currentWpm] WPM...", "delay": 0 },
-        { "text": "Setting your target to [targetSpeed]...", "delay": 600 },
-        { "text": "Optimizing curriculum for [purpose]...", "delay": 1200 },
-        { "text": "Tackling [barrier] with distraction-free practice...", "delay": 1800 },
-        { "text": "Activating [motivation] to keep you engaged...", "delay": 2400 },
-        { "text": "Scheduling [dailyGoal] of daily practice...", "delay": 3000 },
-        { "text": "Finalizing your personalized roadmap...", "delay": 3600 }
-      ],
-      "nextScreenId": "account-creation"
+      "position": {
+        "x": 600,
+        "y": 500
+      },
+      "nextScreenId": "account-creation",
+      "roleVariable": "role",
+      "variants": {
+        "student": {
+          "headline": "Building Your Personalized Plan",
+          "messages": [
+            {
+              "text": "Measuring your baseline of [currentWpm] WPM..."
+            },
+            {
+              "text": "Setting your target to [targetSpeed] WPM..."
+            },
+            {
+              "text": "Optimizing curriculum for [purpose]..."
+            },
+            {
+              "text": "Tackling [barrier] with distraction-free practice..."
+            },
+            {
+              "text": "Activating [motivation] to keep you engaged..."
+            },
+            {
+              "text": "Scheduling [dailyGoal] of daily practice..."
+            },
+            {
+              "text": "Finalizing your personalized roadmap..."
+            }
+          ]
+        },
+        "parent": {
+          "headline": "Building [childName]'s Personalized Plan",
+          "messages": [
+            {
+              "text": "Assessing [childName]'s [experienceLevel] typing level..."
+            },
+            {
+              "text": "Calibrating [techSkillsLevel] tech literacy modules..."
+            },
+            {
+              "text": "Addressing your concern about [screenTimeConcern]..."
+            },
+            {
+              "text": "Tackling [barrier] with distraction-free practice..."
+            },
+            {
+              "text": "Configuring Ad-Free environment for safe learning..."
+            },
+            {
+              "text": "Activating [motivation]-based engagement..."
+            },
+            {
+              "text": "Setting [dailyGoal] daily practice target..."
+            },
+            {
+              "text": "Generating [childName]'s personalized roadmap..."
+            }
+          ]
+        },
+        "adult": {
+          "headline": "Building Your Personalized Plan",
+          "messages": [
+            {
+              "text": "Measuring your baseline of [currentWpm] WPM..."
+            },
+            {
+              "text": "Setting your target to [targetSpeed] WPM..."
+            },
+            {
+              "text": "Optimizing for [primaryGoal]..."
+            },
+            {
+              "text": "Preparing verifiable certificate...",
+              "condition": {
+                "variable": "needsCertificate",
+                "operator": "equals",
+                "value": "yes"
+              }
+            },
+            {
+              "text": "Tackling [barrier] with Flow State mode..."
+            },
+            {
+              "text": "Activating [motivation] tracking..."
+            },
+            {
+              "text": "Setting [dailyGoal] daily commitment..."
+            },
+            {
+              "text": "Finalizing your personalized roadmap..."
+            }
+          ]
+        },
+        "teacher": {
+          "headline": "Building Your Classroom Plan",
+          "messages": [
+            {
+              "text": "Confirming [confirmedState] standards alignment..."
+            },
+            {
+              "text": "Loading curriculum for grades [gradeLevels]..."
+            },
+            {
+              "text": "Preparing roster for [studentCount] students..."
+            },
+            {
+              "text": "Adding [contentNeeds] modules..."
+            },
+            {
+              "text": "Configuring [rosteringMethod] sync..."
+            },
+            {
+              "text": "Optimizing for [adImportance] ad-free priority..."
+            },
+            {
+              "text": "Enabling [needsAccessibility] accommodations...",
+              "condition": {
+                "variable": "needsAccessibility",
+                "operator": "equals",
+                "value": "yes"
+              }
+            },
+            {
+              "text": "Verifying [device] compatibility..."
+            },
+            {
+              "text": "Building your classroom plan..."
+            }
+          ]
+        },
+        "school-admin": {
+          "headline": "Building Your School Plan",
+          "messages": [
+            {
+              "text": "Scaling for [studentCount] students..."
+            },
+            {
+              "text": "Configuring [rosteringMethod] integration..."
+            },
+            {
+              "text": "Securing [environmentConcern] protection..."
+            },
+            {
+              "text": "Enabling [dataRetention] data history..."
+            },
+            {
+              "text": "Calibrating [needsAnalytics] reporting dashboard..."
+            },
+            {
+              "text": "Configuring Role Switcher...",
+              "condition": {
+                "variable": "teachesClasses",
+                "operator": "equals",
+                "value": "yes"
+              }
+            },
+            {
+              "text": "Generating quote for [studentCount] licenses..."
+            }
+          ]
+        },
+        "district-admin": {
+          "headline": "Building Your District Plan",
+          "messages": [
+            {
+              "text": "Mapping [schoolCount] schools to Master Dashboard..."
+            },
+            {
+              "text": "Verifying [rosteringMethod] protocols..."
+            },
+            {
+              "text": "Securing [environmentConcern] protection..."
+            },
+            {
+              "text": "Preparing [dpaRequired] compliance documentation...",
+              "condition": {
+                "variable": "dpaRequired",
+                "operator": "equals",
+                "value": "yes"
+              }
+            },
+            {
+              "text": "Calibrating [analyticsLevel] reporting dashboard..."
+            },
+            {
+              "text": "Enabling [dataRetention] data history..."
+            },
+            {
+              "text": "Configuring Role Switcher...",
+              "condition": {
+                "variable": "teachesClasses",
+                "operator": "equals",
+                "value": "yes"
+              }
+            },
+            {
+              "text": "Building your district implementation roadmap..."
+            }
+          ]
+        }
+      },
+      "defaultVariant": "student",
+      "duration": 5000,
+      "animation": "progress-bar"
     },
     {
       "id": "account-creation",
-      "type": "account-creation",
-      "title": "Account Creation",
+      "type": "FORM",
+      "title": "Your Custom Plan",
+      "position": {
+        "x": 850,
+        "y": 500
+      },
+      "nextScreenId": "paywall",
       "headline": "Your Customized Typing Plan is Ready!",
-      "copy": "We've built a roadmap to help you reach your [targetSpeed] goal. Create your account to save these settings and start your first lesson.",
-      "collectFields": ["email", "password", "firstName"],
+      "copy": "We've built a roadmap to help you reach your [targetSpeed] WPM goal. Create your account to save these settings and start your first lesson.",
       "showSocialLogin": true,
-      "socialProviders": ["google", "apple"],
-      "nextScreenId": "paywall"
+      "socialProviders": [
+        "google",
+        "microsoft"
+      ],
+      "collectFields": [
+        "email",
+        "password",
+        "firstName"
+      ]
     },
     {
       "id": "paywall",
-      "type": "paywall",
+      "type": "PAY",
       "title": "PLUS Offer",
-      "headline": "Unlock the Full Experience",
-      "valuePropositions": [
-        "Premium Content: Instant access to all Test Prep, Creative Writing, and Coding units.",
-        "Zero Distractions: Remove all ads to stay in a \"flow state\" while you practice."
-      ],
+      "position": {
+        "x": 1100,
+        "y": 500
+      },
+      "roleVariable": "role",
+      "variants": {
+        "student": {
+          "headline": "Unlock the Full Experience",
+          "valuePropositions": [
+            "Premium Content: Instant access to all Test Prep, Creative Writing, and Coding units",
+            "Zero Distractions: Remove all ads to stay in a \"flow state\" while you practice"
+          ]
+        },
+        "parent": {
+          "headline": "Unlock the Full Experience for [childName]",
+          "valuePropositions": [
+            "Premium Content: Instant access to all Tech Literacy, Digital Citizenship, and Coding units",
+            "Zero Distractions: 100% Ad-Free for safe, focused learning"
+          ]
+        },
+        "adult": {
+          "headline": "Your Typing.com PLUS Plan is Ready",
+          "valuePropositions": [
+            "All personalized aspects included",
+            "Verifiable certificates for employers",
+            "Ad-free focused practice"
+          ]
+        },
+        "teacher": {
+          "headline": "Unlock the Full Classroom Experience",
+          "valuePropositions": [
+            "Full Coding, Digital Citizenship, and Typing curriculum",
+            "Ad-free environment for focused learning",
+            "Student progress tracking and reports"
+          ]
+        },
+        "school-admin": {
+          "headline": "Your School's Ad-Free Quote",
+          "valuePropositions": [
+            "100% Ad-Free, Walled Garden environment",
+            "Unlimited Data Retention",
+            "School-wide SSO deployment"
+          ]
+        },
+        "district-admin": {
+          "headline": "Your District Implementation Roadmap",
+          "valuePropositions": [
+            "100% Ad-Free, Walled Garden environment",
+            "Signed DPA/SOPPA compliance",
+            "District Master Dashboard",
+            "Automated nightly rostering",
+            "ROI analytics"
+          ]
+        }
+      },
+      "defaultVariant": "student",
       "primaryAction": {
         "label": "Upgrade to PLUS",
-        "nextScreenId": null
+        "action": "upgrade"
       },
       "secondaryAction": {
         "label": "I'm OK with Ads",
-        "nextScreenId": null
+        "action": "continue-free"
       }
     }
-  ]
+  ],
+  "variables": [
+    {
+      "id": "var-role",
+      "name": "role",
+      "displayName": "Role",
+      "type": "string",
+      "defaultValue": "student"
+    },
+    {
+      "id": "var-purpose",
+      "name": "purpose",
+      "displayName": "Purpose",
+      "type": "string",
+      "source": "purpose-assessment"
+    },
+    {
+      "id": "var-current-wpm",
+      "name": "currentWpm",
+      "displayName": "Current WPM",
+      "type": "number",
+      "source": "typing-test"
+    },
+    {
+      "id": "var-current-accuracy",
+      "name": "currentAccuracy",
+      "displayName": "Current Accuracy",
+      "type": "number",
+      "source": "typing-test"
+    },
+    {
+      "id": "var-target-speed",
+      "name": "targetSpeed",
+      "displayName": "Target Speed",
+      "type": "string",
+      "source": "target-speed"
+    },
+    {
+      "id": "var-barrier",
+      "name": "barrier",
+      "displayName": "Barrier",
+      "type": "string",
+      "source": "barriers"
+    },
+    {
+      "id": "var-motivation",
+      "name": "motivation",
+      "displayName": "Motivation",
+      "type": "string",
+      "source": "motivation"
+    },
+    {
+      "id": "var-discovery-source",
+      "name": "discoverySource",
+      "displayName": "Discovery Source",
+      "type": "string",
+      "source": "discovery"
+    },
+    {
+      "id": "var-daily-goal",
+      "name": "dailyGoal",
+      "displayName": "Daily Goal",
+      "type": "string",
+      "source": "daily-goal"
+    }
+  ],
+  "settings": {
+    "showProgressBar": true,
+    "progressBarStyle": "steps",
+    "allowBackNavigation": true,
+    "autoSaveResponses": true,
+    "theme": "individual"
+  }
 }

@@ -1,36 +1,147 @@
 "use client";
 
 import { useCallback } from "react";
-import { Trash2, Copy, Plus, GripVertical, X } from "lucide-react";
+import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
   useEditorStore,
   selectSelectedNode,
   selectSelectedScreen,
+  selectCurrentFlow,
 } from "@/store/editorStore";
 import type {
   Screen,
-  QuestionScreen,
+  MultipleChoiceScreen,
   MultiSelectScreen,
   InputScreen,
-  GatekeeperScreen,
   QuestionOption,
+  QuestionVariant,
   InterstitialScreen,
   InterstitialMessage,
-  SocialProofScreen,
-  SocialProofVariant,
+  InterstitialVariant,
+  MessageScreen,
+  MessageVariant,
+  FormScreen,
+  PaywallScreen,
+  PaywallVariant,
+  TypingTestScreen,
 } from "@/types/flow";
 import { nanoid } from "nanoid";
+import { componentTemplates } from "@/data/componentRegistry";
+import { getComponentAvailability } from "@/lib/componentUtils";
 
 export function PropertiesPanel() {
   const selectedNode = useEditorStore(selectSelectedNode);
   const selectedScreen = useEditorStore(selectSelectedScreen);
-  const { updateNode, removeNode, duplicateNode } = useEditorStore();
+  const currentFlow = useEditorStore(selectCurrentFlow);
+  const selectedLibraryItemId = useEditorStore((state) => state.selectedLibraryItemId);
+  const { updateNode, removeNode, duplicateNode, setEntryScreen } = useEditorStore();
+
+  if (selectedLibraryItemId && !selectedNode) {
+    const template = componentTemplates.find((t) => t.id === selectedLibraryItemId);
+
+    if (template) {
+      const availability = getComponentAvailability(template);
+
+      return (
+        <div className="h-full flex flex-col bg-white border-l">
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-sm">Library Item</h2>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-6">
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  {/* We don't have the icon component map here easily without huge imports, 
+                      so we'll just show the category as fallback or simpler UI */}
+                  <div className="text-2xl font-bold text-gray-400">
+                    {template.name.charAt(0)}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{template.name}</h3>
+                  <p className="text-sm text-gray-500">{template.description}</p>
+                  <div className="flex gap-2 mt-2">
+                    <span className="px-2 py-0.5 bg-gray-100 text-xs rounded text-gray-600 font-mono">
+                      {template.code}
+                    </span>
+                    <span className="px-2 py-0.5 bg-blue-50 text-xs rounded text-blue-600 capitalize">
+                      {template.category}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Availability */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Availability
+                </h4>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-md">
+                    <p className="text-xs text-gray-500 mb-1">Shared Component</p>
+                    <p className="font-medium text-sm">
+                      {availability.isShared ? "Yes" : "No"}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-md">
+                    <p className="text-xs text-gray-500 mb-1">Valid Flows</p>
+                    <div className="flex flex-wrap gap-1">
+                      {availability.validFlows.length > 0 ? (
+                        availability.validFlows.map(f => (
+                          <span key={f} className="px-1.5 py-0.5 bg-white border rounded text-xs">
+                            {f}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm">-</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {availability.validRoles.length > 0 && (
+                  <div className="p-3 bg-gray-50 rounded-md">
+                    <p className="text-xs text-gray-500 mb-1">Target Roles</p>
+                    <div className="flex flex-wrap gap-1">
+                      {availability.validRoles.map(role => (
+                        <span key={role} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs border border-indigo-100">
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Default Content Preview */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Default Configuration
+                </h4>
+                <div className="bg-gray-50 p-3 rounded-md border text-xs font-mono overflow-x-auto">
+                  <pre>{JSON.stringify(template.defaultScreen, null, 2)}</pre>
+                </div>
+              </div>
+
+            </div>
+          </ScrollArea>
+        </div>
+      );
+    }
+  }
 
   if (!selectedNode || !selectedScreen) {
     return (
@@ -45,20 +156,36 @@ export function PropertiesPanel() {
         </div>
       </div>
     );
+
+
   }
+
+  const isLocked = selectedScreen.isLocked !== false;
+  const isEntryPoint = currentFlow?.entryScreenId === selectedScreen.id;
 
   const handleUpdate = (updates: Partial<Screen>) => {
     updateNode(selectedNode.id, updates);
   };
 
   const handleDelete = () => {
+    if (isLocked) return;
     if (confirm("Are you sure you want to delete this screen?")) {
       removeNode(selectedNode.id);
     }
   };
 
   const handleDuplicate = () => {
+    if (isLocked) return;
     duplicateNode(selectedNode.id);
+  };
+
+  const toggleLock = () => {
+    handleUpdate({ isLocked: !isLocked });
+  };
+
+  const handleSetEntryPoint = () => {
+    if (isLocked) return;
+    setEntryScreen(selectedNode.id);
   };
 
   return (
@@ -71,8 +198,18 @@ export function PropertiesPanel() {
             <Button
               variant="ghost"
               size="icon"
+              className={cn("h-7 w-7", isLocked ? "text-amber-500" : "text-gray-400")}
+              onClick={toggleLock}
+              title={isLocked ? "Unlock" : "Lock"}
+            >
+              {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-7 w-7"
               onClick={handleDuplicate}
+              disabled={isLocked}
               title="Duplicate"
             >
               <Copy size={14} />
@@ -82,45 +219,63 @@ export function PropertiesPanel() {
               size="icon"
               className="h-7 w-7 text-red-500 hover:text-red-600"
               onClick={handleDelete}
+              disabled={isLocked}
               title="Delete"
             >
               <Trash2 size={14} />
             </Button>
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-7 w-7", isEntryPoint ? "text-green-600" : "text-gray-400 hover:text-green-600")}
+              onClick={handleSetEntryPoint}
+              disabled={isLocked}
+              title={isEntryPoint ? "Entry Point" : "Mark as Entry Point"}
+            >
+              <Flag size={14} fill={isEntryPoint ? "currentColor" : "none"} />
+            </Button>
           </div>
         </div>
-        <p className="text-xs text-gray-500 uppercase tracking-wide">
-          {selectedScreen.type.replace("-", " ")}
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {selectedScreen.type}
+          </p>
+          <Input
+            value={selectedScreen.title}
+            onChange={(e) => handleUpdate({ title: e.target.value })}
+            className="font-medium h-8"
+            placeholder="Screen Title"
+            disabled={isLocked}
+          />
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-            <TabsTrigger
-              value="content"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-            >
-              Content
-            </TabsTrigger>
-            <TabsTrigger
-              value="settings"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
-            >
-              Settings
-            </TabsTrigger>
-          </TabsList>
+          <div className="px-4 pt-2 border-b">
+            <TabsList className="w-full">
+              <TabsTrigger value="content" className="flex-1 text-xs">
+                Content
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex-1 text-xs">
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="content" className="p-4 space-y-4">
-            {/* Common Fields */}
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-xs">
-                Title
+              <Label htmlFor="componentCode" className="text-xs">
+                Component Code
               </Label>
               <Input
-                id="title"
-                value={selectedScreen.title}
-                onChange={(e) => handleUpdate({ title: e.target.value })}
-                className="h-8 text-sm"
+                id="componentCode"
+                value={selectedScreen.componentCode || ""}
+                onChange={(e) => handleUpdate({ componentCode: e.target.value })}
+                className="h-8 text-sm font-mono bg-gray-50"
+                placeholder="e.g. MC-PURPOSE-STU"
+                disabled={isLocked}
               />
             </div>
 
@@ -134,7 +289,8 @@ export function PropertiesPanel() {
                   value={selectedScreen.subtitle || ""}
                   onChange={(e) => handleUpdate({ subtitle: e.target.value })}
                   className="h-8 text-sm"
-                  placeholder="Optional subtitle"
+                  placeholder="Subtitle text"
+                  disabled={isLocked}
                 />
               </div>
             )}
@@ -142,7 +298,9 @@ export function PropertiesPanel() {
             <Separator />
 
             {/* Type-specific fields */}
-            <ScreenTypeFields screen={selectedScreen} onUpdate={handleUpdate} />
+            <div>
+              <ScreenTypeFields screen={selectedScreen} onUpdate={handleUpdate} isLocked={isLocked} />
+            </div>
           </TabsContent>
 
           <TabsContent value="settings" className="p-4 space-y-4">
@@ -173,6 +331,7 @@ export function PropertiesPanel() {
                 }
                 className="h-8 text-sm"
                 placeholder="tag1, tag2, tag3"
+                disabled={isLocked}
               />
             </div>
           </TabsContent>
@@ -184,28 +343,45 @@ export function PropertiesPanel() {
 
 interface ScreenTypeFieldsProps {
   screen: Screen;
+  isLocked: boolean;
   onUpdate: (updates: Partial<Screen>) => void;
 }
 
-function ScreenTypeFields({ screen, onUpdate }: ScreenTypeFieldsProps) {
+function ScreenTypeFields({ screen, onUpdate, isLocked }: ScreenTypeFieldsProps) {
   switch (screen.type) {
-    case "gatekeeper":
-    case "question":
-    case "multi-select":
-    case "discovery":
-      return <QuestionFields screen={screen as QuestionScreen} onUpdate={onUpdate} />;
+    case "MC":
+      return <QuestionFields screen={screen as MultipleChoiceScreen} onUpdate={onUpdate} isLocked={isLocked} />;
 
-    case "input":
-      return <InputFields screen={screen as InputScreen} onUpdate={onUpdate} />;
+    case "MS":
+      return <QuestionFields screen={screen as MultiSelectScreen} onUpdate={onUpdate} isLocked={isLocked} />;
 
-    case "interstitial":
+    case "TXT":
+    case "NUM":
+      return <InputFields screen={screen as InputScreen} onUpdate={onUpdate} isLocked={isLocked} />;
+
+    case "INT":
       return (
-        <InterstitialFields screen={screen as InterstitialScreen} onUpdate={onUpdate} />
+        <InterstitialFields screen={screen as InterstitialScreen} onUpdate={onUpdate} isLocked={isLocked} />
       );
 
-    case "social-proof":
+    case "MSG":
       return (
-        <SocialProofFields screen={screen as SocialProofScreen} onUpdate={onUpdate} />
+        <MessageFields screen={screen as MessageScreen} onUpdate={onUpdate} isLocked={isLocked} />
+      );
+
+    case "FORM":
+      return (
+        <FormFields screen={screen as FormScreen} onUpdate={onUpdate} isLocked={isLocked} />
+      );
+
+    case "PAY":
+      return (
+        <PaywallFields screen={screen as PaywallScreen} onUpdate={onUpdate} isLocked={isLocked} />
+      );
+
+    case "TEST":
+      return (
+        <TypingTestFields screen={screen as TypingTestScreen} onUpdate={onUpdate} isLocked={isLocked} />
       );
 
     default:
@@ -218,109 +394,335 @@ function ScreenTypeFields({ screen, onUpdate }: ScreenTypeFieldsProps) {
 }
 
 interface QuestionFieldsProps {
-  screen: QuestionScreen | MultiSelectScreen | GatekeeperScreen;
-  onUpdate: (updates: Partial<QuestionScreen>) => void;
+  screen: MultipleChoiceScreen | MultiSelectScreen;
+  isLocked: boolean;
+  onUpdate: (updates: Partial<MultipleChoiceScreen>) => void;
 }
 
-function QuestionFields({ screen, onUpdate }: QuestionFieldsProps) {
+function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
+  // Variant mode is available for MC and MS types
+  const supportsVariants = true;
+  const variantKeys = Object.keys((screen as MultipleChoiceScreen).variants || {});
+
+  // Ensure roleVariable defaults if variants exist but it's missing (migration/safety)
+  if (variantKeys.length > 0 && !(screen as MultipleChoiceScreen).roleVariable) {
+    // Side effect in render is bad practice, but we are just deriving display state here
+    // Ideally we'd fix data upstream, but let's just default display
+  }
+
   const handleOptionChange = (
     index: number,
     field: keyof QuestionOption,
-    value: string
+    value: string,
+    variantKey?: string
   ) => {
-    const newOptions = [...screen.options];
-    newOptions[index] = { ...newOptions[index], [field]: value };
-    onUpdate({ options: newOptions });
+    if (variantKey && (screen as MultipleChoiceScreen).variants) {
+      const variant = (screen as MultipleChoiceScreen).variants![variantKey];
+      const newOptions = [...variant.options];
+      newOptions[index] = { ...newOptions[index], [field]: value };
+      onUpdate({
+        variants: {
+          ...(screen as MultipleChoiceScreen).variants,
+          [variantKey]: { ...variant, options: newOptions },
+        },
+      });
+    } else {
+      const newOptions = [...(screen.options || [])];
+      newOptions[index] = { ...newOptions[index], [field]: value };
+      onUpdate({ options: newOptions });
+    }
   };
 
-  const handleAddOption = () => {
+  const handleAddOption = (variantKey?: string) => {
     const newOption: QuestionOption = {
       id: nanoid(),
-      label: `Option ${screen.options.length + 1}`,
-      value: `option-${screen.options.length + 1}`,
+      label: "New Option",
+      value: `option-${Date.now()}`,
     };
-    onUpdate({ options: [...screen.options, newOption] });
+    if (variantKey && (screen as MultipleChoiceScreen).variants) {
+      const variant = (screen as MultipleChoiceScreen).variants![variantKey];
+      onUpdate({
+        variants: {
+          ...(screen as MultipleChoiceScreen).variants,
+          [variantKey]: { ...variant, options: [...variant.options, newOption] },
+        },
+      });
+    } else {
+      onUpdate({ options: [...(screen.options || []), newOption] });
+    }
   };
 
-  const handleRemoveOption = (index: number) => {
-    const newOptions = screen.options.filter((_, i) => i !== index);
-    onUpdate({ options: newOptions });
+  const handleRemoveOption = (index: number, variantKey?: string) => {
+    if (variantKey && (screen as MultipleChoiceScreen).variants) {
+      const variant = (screen as MultipleChoiceScreen).variants![variantKey];
+      const newOptions = variant.options.filter((_, i) => i !== index);
+      onUpdate({
+        variants: {
+          ...(screen as MultipleChoiceScreen).variants,
+          [variantKey]: { ...variant, options: newOptions },
+        },
+      });
+    } else {
+      const newOptions = (screen.options || []).filter((_, i) => i !== index);
+      onUpdate({ options: newOptions });
+    }
+  };
+
+  const handleAddVariant = () => {
+    const newKey = `variant-${variantKeys.length + 1}`;
+    const updates: Partial<MultipleChoiceScreen> = {
+      variants: {
+        ...(screen as MultipleChoiceScreen).variants,
+        [newKey]: {
+          question: screen.question || "Enter your question",
+          options: screen.options || [{ id: nanoid(), label: "Option 1", value: "option-1" }],
+        },
+      }
+    };
+
+    // Set default role variable if not set
+    if (!(screen as MultipleChoiceScreen).roleVariable) {
+      updates.roleVariable = "role";
+    }
+
+    onUpdate(updates);
+  };
+
+  const handleRemoveVariant = (key: string) => {
+    const newVariants = { ...(screen as MultipleChoiceScreen).variants };
+    delete newVariants[key];
+    onUpdate({ variants: newVariants });
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="question" className="text-xs">
-          Question
-        </Label>
-        <textarea
-          id="question"
-          value={screen.question}
-          onChange={(e) => onUpdate({ question: e.target.value })}
-          className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
-          placeholder="Enter your question..."
-        />
-      </div>
-
-      <div className="space-y-2">
+    <div className="space-y-6">
+      {/* Defaults Section */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-xs">Options</Label>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs"
-            onClick={handleAddOption}
-          >
-            <Plus size={12} className="mr-1" />
-            Add
-          </Button>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Default Content
+          </h3>
         </div>
 
         <div className="space-y-2">
-          {screen.options.map((option, index) => (
-            <div
-              key={option.id}
-              className="flex items-center gap-2 p-2 bg-gray-50 rounded"
-            >
-              <GripVertical size={14} className="text-gray-400 cursor-grab" />
-              <Input
-                value={option.label}
-                onChange={(e) => handleOptionChange(index, "label", e.target.value)}
-                className="h-7 text-sm flex-1"
-                placeholder="Label"
-              />
-              <Input
-                value={option.value}
-                onChange={(e) => handleOptionChange(index, "value", e.target.value)}
-                className="h-7 text-sm w-24"
-                placeholder="Value"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => handleRemoveOption(index)}
-              >
-                <X size={12} />
-              </Button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {screen.variableBinding !== undefined && (
-        <div className="space-y-2">
-          <Label htmlFor="variableBinding" className="text-xs">
-            Save to Variable
+          <Label htmlFor="question" className="text-xs">
+            Question
           </Label>
-          <Input
-            id="variableBinding"
-            value={screen.variableBinding || ""}
-            onChange={(e) => onUpdate({ variableBinding: e.target.value })}
-            className="h-8 text-sm"
-            placeholder="variableName"
+          <textarea
+            id="question"
+            value={screen.question || ""}
+            onChange={(e) => onUpdate({ question: e.target.value })}
+            className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
+            placeholder="Enter your question..."
+            disabled={isLocked}
           />
         </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Options</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs"
+              onClick={() => handleAddOption()}
+              disabled={isLocked}
+            >
+              <Plus size={12} className="mr-1" />
+              Add
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {(screen.options || []).map((option, index) => (
+              <div
+                key={option.id}
+                className="flex items-center gap-2 p-2 bg-gray-50 rounded"
+              >
+                <GripVertical size={14} className="text-gray-400 cursor-grab" />
+                <Input
+                  value={option.label}
+                  onChange={(e) => handleOptionChange(index, "label", e.target.value)}
+                  className="h-7 text-sm flex-1"
+                  placeholder="Label"
+                  disabled={isLocked}
+                />
+                <Input
+                  value={option.value}
+                  onChange={(e) => handleOptionChange(index, "value", e.target.value)}
+                  className="h-7 text-sm w-24"
+                  placeholder="Value"
+                  disabled={isLocked}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => handleRemoveOption(index)}
+                  disabled={isLocked}
+                >
+                  <X size={12} />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Variants Section */}
+      {supportsVariants && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Role-Based Variants
+              </h3>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleAddVariant}
+              disabled={isLocked}
+            >
+              <Plus size={12} className="mr-1" />
+              Add Variant
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="roleVariable" className="text-xs text-gray-500">
+              Role Variable
+            </Label>
+            <Input
+              id="roleVariable"
+              value={(screen as MultipleChoiceScreen).roleVariable || "role"}
+              onChange={(e) => onUpdate({ roleVariable: e.target.value })}
+              className="h-8 text-sm"
+              placeholder="role"
+              disabled={isLocked}
+            />
+          </div>
+
+          {variantKeys.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
+                Default Variant (Fallback)
+              </Label>
+              <select
+                id="defaultVariant"
+                value={(screen as MultipleChoiceScreen).defaultVariant || ""}
+                onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
+                className="w-full h-8 px-2 text-sm border rounded-md"
+                disabled={isLocked}
+              >
+                <option value="">None (Use Default Content)</option>
+                {variantKeys.map((key) => (
+                  <option key={key} value={key}>
+                    {key}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="space-y-4 pt-2">
+            {variantKeys.map((key) => {
+              const variant = (screen as MultipleChoiceScreen).variants?.[key];
+              if (!variant) return null;
+              return (
+                <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-gray-700 bg-white px-2 py-0.5 rounded border">{key}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-gray-400 hover:text-red-500"
+                      onClick={() => handleRemoveVariant(key)}
+                      disabled={isLocked}
+                    >
+                      <X size={12} />
+                    </Button>
+                  </div>
+
+                  <Input
+                    value={variant.question}
+                    onChange={(e) =>
+                      onUpdate({
+                        variants: {
+                          ...(screen as MultipleChoiceScreen).variants,
+                          [key]: { ...variant, question: e.target.value },
+                        },
+                      })
+                    }
+                    className="h-7 text-sm"
+                    placeholder="Question override (optional)"
+                    disabled={isLocked}
+                  />
+
+                  <div className="space-y-1">
+                    {variant.options.map((option, index) => (
+                      <div key={option.id} className="flex items-center gap-1">
+                        <Input
+                          value={option.label}
+                          onChange={(e) => handleOptionChange(index, "label", e.target.value, key)}
+                          className="h-6 text-xs flex-1"
+                          placeholder="Label"
+                          disabled={isLocked}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleRemoveOption(index, key)}
+                          disabled={isLocked}
+                        >
+                          <X size={10} />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 text-[10px] w-full mt-1"
+                      onClick={() => handleAddOption(key)}
+                      disabled={isLocked}
+                    >
+                      + Add Option
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {variantKeys.length === 0 && (
+              <div className="text-center p-4 border border-dashed rounded-md text-gray-400 text-xs">
+                No variants added yet.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {screen.variableBinding !== undefined && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label htmlFor="variableBinding" className="text-xs">
+              Save to Variable
+            </Label>
+            <Input
+              id="variableBinding"
+              value={screen.variableBinding || ""}
+              onChange={(e) => onUpdate({ variableBinding: e.target.value })}
+              className="h-8 text-sm"
+              placeholder="variableName"
+              disabled={isLocked}
+            />
+          </div>
+        </>
       )}
     </div>
   );
@@ -328,10 +730,11 @@ function QuestionFields({ screen, onUpdate }: QuestionFieldsProps) {
 
 interface InputFieldsProps {
   screen: InputScreen;
+  isLocked: boolean;
   onUpdate: (updates: Partial<InputScreen>) => void;
 }
 
-function InputFields({ screen, onUpdate }: InputFieldsProps) {
+function InputFields({ screen, onUpdate, isLocked }: InputFieldsProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -344,6 +747,7 @@ function InputFields({ screen, onUpdate }: InputFieldsProps) {
           onChange={(e) => onUpdate({ prompt: e.target.value })}
           className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
           placeholder="Enter your prompt..."
+          disabled={isLocked}
         />
       </div>
 
@@ -358,6 +762,7 @@ function InputFields({ screen, onUpdate }: InputFieldsProps) {
             onUpdate({ inputType: e.target.value as InputScreen["inputType"] })
           }
           className="w-full h-8 px-2 text-sm border rounded-md"
+          disabled={isLocked}
         >
           <option value="text">Text</option>
           <option value="email">Email</option>
@@ -376,6 +781,7 @@ function InputFields({ screen, onUpdate }: InputFieldsProps) {
           onChange={(e) => onUpdate({ placeholder: e.target.value })}
           className="h-8 text-sm"
           placeholder="Type here..."
+          disabled={isLocked}
         />
       </div>
 
@@ -389,6 +795,7 @@ function InputFields({ screen, onUpdate }: InputFieldsProps) {
           onChange={(e) => onUpdate({ variableBinding: e.target.value })}
           className="h-8 text-sm"
           placeholder="variableName"
+          disabled={isLocked}
         />
       </div>
     </div>
@@ -397,42 +804,156 @@ function InputFields({ screen, onUpdate }: InputFieldsProps) {
 
 interface InterstitialFieldsProps {
   screen: InterstitialScreen;
+  isLocked: boolean;
   onUpdate: (updates: Partial<InterstitialScreen>) => void;
 }
 
-function InterstitialFields({ screen, onUpdate }: InterstitialFieldsProps) {
-  const handleMessageChange = (index: number, text: string) => {
-    const newMessages = [...screen.messages];
-    newMessages[index] = { ...newMessages[index], text };
-    onUpdate({ messages: newMessages });
+function InterstitialFields({ screen, onUpdate, isLocked }: InterstitialFieldsProps) {
+  const variantKeys = Object.keys(screen.variants || {});
+  // hasVariants is true if roleVariable is set - even with empty variants (user can add them)
+  const hasVariants = !!screen.roleVariable;
+
+  const handleMessageChange = (index: number, text: string, variantKey?: string) => {
+    if (variantKey && screen.variants) {
+      const variant = screen.variants[variantKey];
+      const newMessages = [...variant.messages];
+      newMessages[index] = { ...newMessages[index], text };
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [variantKey]: { ...variant, messages: newMessages },
+        },
+      });
+    } else if (screen.messages) {
+      const newMessages = [...screen.messages];
+      newMessages[index] = { ...newMessages[index], text };
+      onUpdate({ messages: newMessages });
+    }
   };
 
-  const handleAddMessage = () => {
-    const newMessage: InterstitialMessage = {
-      text: "New message...",
+  const handleAddMessage = (variantKey?: string) => {
+    const newMessage: InterstitialMessage = { text: "New message..." };
+    if (variantKey && screen.variants) {
+      const variant = screen.variants[variantKey];
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [variantKey]: { ...variant, messages: [...variant.messages, newMessage] },
+        },
+      });
+    } else {
+      onUpdate({ messages: [...(screen.messages || []), newMessage] });
+    }
+  };
+
+  const handleRemoveMessage = (index: number, variantKey?: string) => {
+    if (variantKey && screen.variants) {
+      const variant = screen.variants[variantKey];
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [variantKey]: { ...variant, messages: variant.messages.filter((_, i) => i !== index) },
+        },
+      });
+    } else if (screen.messages) {
+      onUpdate({ messages: screen.messages.filter((_, i) => i !== index) });
+    }
+  };
+
+  const handleAddVariant = () => {
+    const newKey = `variant-${variantKeys.length + 1}`;
+    const updates: Partial<InterstitialScreen> = {
+      variants: {
+        ...screen.variants,
+        [newKey]: {
+          headline: screen.headline || "Analyzing your responses...",
+          messages: screen.messages || [{ text: "Loading..." }],
+        },
+      },
     };
-    onUpdate({ messages: [...screen.messages, newMessage] });
+
+    // Set default role variable if not set
+    if (!screen.roleVariable) {
+      updates.roleVariable = "role";
+    }
+
+    onUpdate(updates);
   };
 
-  const handleRemoveMessage = (index: number) => {
-    const newMessages = screen.messages.filter((_, i) => i !== index);
-    onUpdate({ messages: newMessages });
+  const handleRemoveVariant = (key: string) => {
+    const newVariants = { ...screen.variants };
+    delete newVariants[key];
+    onUpdate({ variants: newVariants });
   };
+
+
 
   return (
     <div className="space-y-4">
+      {/* Defaults Section */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          Default Content
+        </h3>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="headline" className="text-xs">
           Headline
         </Label>
         <Input
           id="headline"
-          value={screen.headline}
+          value={screen.headline || ""}
           onChange={(e) => onUpdate({ headline: e.target.value })}
           className="h-8 text-sm"
+          placeholder="Headline"
+          disabled={isLocked}
         />
       </div>
 
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Messages</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs"
+            onClick={() => handleAddMessage()}
+            disabled={isLocked}
+          >
+            <Plus size={12} className="mr-1" />
+            Add
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {(screen.messages || []).map((message, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Input
+                value={message.text}
+                onChange={(e) => handleMessageChange(index, e.target.value)}
+                className="h-8 text-sm flex-1"
+                placeholder="Message text..."
+                disabled={isLocked}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleRemoveMessage(index)}
+                disabled={isLocked}
+              >
+                <X size={12} />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
+      <Separator />
+
+      {/* Shared settings (animation, duration) */}
       <div className="space-y-2">
         <Label htmlFor="animation" className="text-xs">
           Animation
@@ -444,6 +965,7 @@ function InterstitialFields({ screen, onUpdate }: InterstitialFieldsProps) {
             onUpdate({ animation: e.target.value as InterstitialScreen["animation"] })
           }
           className="w-full h-8 px-2 text-sm border rounded-md"
+          disabled={isLocked}
         >
           <option value="spinner">Spinner</option>
           <option value="progress-bar">Progress Bar</option>
@@ -461,126 +983,908 @@ function InterstitialFields({ screen, onUpdate }: InterstitialFieldsProps) {
           value={screen.duration}
           onChange={(e) => onUpdate({ duration: parseInt(e.target.value) || 0 })}
           className="h-8 text-sm"
+          disabled={isLocked}
         />
       </div>
 
-      <div className="space-y-2">
+      <Separator />
+
+      {/* Variants Section */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-xs">Messages</Label>
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Role-Based Variants
+            </h3>
+          </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-6 text-xs"
-            onClick={handleAddMessage}
+            className="h-7 text-xs"
+            onClick={handleAddVariant}
+            disabled={isLocked}
           >
             <Plus size={12} className="mr-1" />
-            Add
+            Add Variant
           </Button>
         </div>
 
         <div className="space-y-2">
-          {screen.messages.map((message, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Input
-                value={message.text}
-                onChange={(e) => handleMessageChange(index, e.target.value)}
-                className="h-8 text-sm flex-1"
-                placeholder="Message text..."
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleRemoveMessage(index)}
-              >
-                <X size={12} />
-              </Button>
+          <Label htmlFor="roleVariable" className="text-xs text-gray-500">
+            Role Variable
+          </Label>
+          <Input
+            id="roleVariable"
+            value={screen.roleVariable || "role"}
+            onChange={(e) => onUpdate({ roleVariable: e.target.value })}
+            className="h-8 text-sm"
+            placeholder="role"
+            disabled={isLocked}
+          />
+        </div>
+
+        {variantKeys.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
+              Default Variant (Fallback)
+            </Label>
+            <select
+              id="defaultVariant"
+              value={screen.defaultVariant || ""}
+              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
+              className="w-full h-8 px-2 text-sm border rounded-md"
+              disabled={isLocked}
+            >
+              <option value="">None (Use Default Content)</option>
+              {variantKeys.map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="space-y-4 pt-2">
+          {variantKeys.map((key) => {
+            const variant = screen.variants?.[key];
+            if (!variant) return null;
+            return (
+              <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-gray-700 bg-white px-2 py-0.5 rounded border">{key}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-gray-400 hover:text-red-500"
+                    onClick={() => handleRemoveVariant(key)}
+                    disabled={isLocked}
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+
+                <Input
+                  value={variant.headline}
+                  onChange={(e) =>
+                    onUpdate({
+                      variants: {
+                        ...screen.variants,
+                        [key]: { ...variant, headline: e.target.value },
+                      },
+                    })
+                  }
+                  className="h-7 text-sm"
+                  placeholder="Headline override (optional)"
+                  disabled={isLocked}
+                />
+
+                <div className="space-y-1">
+                  {variant.messages.map((message, index) => (
+                    <div key={index} className="flex items-center gap-1">
+                      <Input
+                        value={message.text}
+                        onChange={(e) => handleMessageChange(index, e.target.value, key)}
+                        className="h-6 text-xs flex-1"
+                        placeholder="Message"
+                        disabled={isLocked}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleRemoveMessage(index, key)}
+                        disabled={isLocked}
+                      >
+                        <X size={10} />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[10px] w-full mt-1"
+                    onClick={() => handleAddMessage(key)}
+                    disabled={isLocked}
+                  >
+                    + Add Message
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+          {variantKeys.length === 0 && (
+            <div className="text-center p-4 border border-dashed rounded-md text-gray-400 text-xs">
+              No variants added yet.
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-interface SocialProofFieldsProps {
-  screen: SocialProofScreen;
-  onUpdate: (updates: Partial<SocialProofScreen>) => void;
+// Message Fields (formerly Affirmation/SocialProof)
+interface MessageFieldsProps {
+  screen: MessageScreen;
+  isLocked: boolean;
+  onUpdate: (updates: Partial<MessageScreen>) => void;
 }
 
-function SocialProofFields({ screen, onUpdate }: SocialProofFieldsProps) {
+function MessageFields({ screen, onUpdate, isLocked }: MessageFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
+
 
   const handleVariantChange = (
     key: string,
-    field: keyof SocialProofVariant,
+    field: keyof MessageVariant,
     value: string
   ) => {
-    const newVariants = {
+    const existingVariant = screen.variants?.[key] || { headline: "", copy: "" };
+    const newVariants: Record<string, MessageVariant> = {
       ...screen.variants,
       [key]: {
-        ...screen.variants[key],
+        ...existingVariant,
         [field]: value,
       },
     };
     onUpdate({ variants: newVariants });
   };
 
+  const handleAddVariant = () => {
+    const newKey = `variant-${variantKeys.length + 1}`;
+    const newVariants = {
+      ...screen.variants,
+      [newKey]: {
+        headline: "New headline",
+        copy: "New copy text",
+      },
+    };
+    onUpdate({ variants: newVariants });
+  };
+
+  const handleRemoveVariant = (key: string) => {
+    const newVariants = { ...screen.variants };
+    delete newVariants[key];
+    onUpdate({ variants: newVariants });
+  };
+
+  const handleRenameVariant = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey || !screen.variants) return;
+    const newVariants: Record<string, MessageVariant> = {};
+    for (const [k, v] of Object.entries(screen.variants)) {
+      newVariants[k === oldKey ? newKey : k] = v;
+    }
+    const updates: Partial<MessageScreen> = { variants: newVariants };
+    if (screen.defaultVariant === oldKey) {
+      updates.defaultVariant = newKey;
+    }
+    onUpdate(updates);
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="roleVariable" className="text-xs">
-          Role Variable
-        </Label>
-        <Input
-          id="roleVariable"
-          value={screen.roleVariable}
-          onChange={(e) => onUpdate({ roleVariable: e.target.value })}
-          className="h-8 text-sm"
-          placeholder="role"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="defaultVariant" className="text-xs">
-          Default Variant
+        <Label htmlFor="style" className="text-xs">
+          Style
         </Label>
         <select
-          id="defaultVariant"
-          value={screen.defaultVariant}
-          onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
+          id="style"
+          value={screen.style || "standard"}
+          onChange={(e) => onUpdate({ style: e.target.value as MessageScreen["style"] })}
           className="w-full h-8 px-2 text-sm border rounded-md"
+          disabled={isLocked}
         >
-          {variantKeys.map((key) => (
-            <option key={key} value={key}>
-              {key}
-            </option>
-          ))}
+          <option value="standard">Standard</option>
+          <option value="toast">Toast</option>
+          <option value="inline">Inline</option>
+          <option value="modal">Modal</option>
+          <option value="overlay">Overlay</option>
         </select>
       </div>
 
       <Separator />
 
-      <div className="space-y-3">
-        <Label className="text-xs">Variants</Label>
-        {variantKeys.map((key) => (
-          <div key={key} className="p-3 bg-gray-50 rounded space-y-2">
-            <p className="text-xs font-medium text-gray-700">{key}</p>
-            <Input
-              value={screen.variants[key].headline}
-              onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
-              className="h-7 text-sm"
-              placeholder="Headline"
-            />
-            <textarea
-              value={screen.variants[key].copy}
-              onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
-              className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
-              placeholder="Copy text..."
-            />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Default Content
+          </h3>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="headline" className="text-xs">
+            Headline
+          </Label>
+          <Input
+            id="headline"
+            value={screen.headline || ""}
+            onChange={(e) => onUpdate({ headline: e.target.value })}
+            className="h-8 text-sm"
+            placeholder="Great choice!"
+            disabled={isLocked}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="copy" className="text-xs">
+            Copy
+          </Label>
+          <textarea
+            id="copy"
+            value={screen.copy || ""}
+            onChange={(e) => onUpdate({ copy: e.target.value })}
+            className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
+            placeholder="You're on the right track..."
+            disabled={isLocked}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Role-Based Variants
+            </h3>
           </div>
-        ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleAddVariant}
+            disabled={isLocked}
+          >
+            <Plus size={12} className="mr-1" />
+            Add Variant
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="conditionVariable" className="text-xs text-gray-500">
+            Condition Variable
+          </Label>
+          <Input
+            id="conditionVariable"
+            value={screen.conditionVariable || "variable"}
+            onChange={(e) => onUpdate({ conditionVariable: e.target.value })}
+            className="h-8 text-sm"
+            placeholder="e.g. barrier"
+            disabled={isLocked}
+          />
+        </div>
+
+        {variantKeys.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
+              Default Variant (Fallback)
+            </Label>
+            <select
+              id="defaultVariant"
+              value={screen.defaultVariant || ""}
+              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
+              className="w-full h-8 px-2 text-sm border rounded-md"
+              disabled={isLocked}
+            >
+              <option value="">None (Use Default Content)</option>
+              {variantKeys.map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {variantKeys.map((key) => (
+            <div key={key} className="p-3 bg-gray-50 rounded space-y-2 border border-gray-200">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={key}
+                  onChange={(e) => handleRenameVariant(key, e.target.value)}
+                  className="h-6 text-xs flex-1 font-medium"
+                  placeholder="Variant key"
+                  disabled={isLocked}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => handleRemoveVariant(key)}
+                  disabled={isLocked}
+                >
+                  <X size={12} />
+                </Button>
+              </div>
+              <Input
+                value={screen.variants?.[key]?.headline || ""}
+                onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
+                className="h-7 text-sm"
+                placeholder="Headline"
+                disabled={isLocked}
+              />
+              <textarea
+                value={screen.variants?.[key]?.copy || ""}
+                onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
+                className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
+                placeholder="Copy text..."
+                disabled={isLocked}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Auto-proceed settings */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="autoProceed"
+          checked={screen.autoProceed || false}
+          onChange={(e) => onUpdate({ autoProceed: e.target.checked })}
+          className="rounded"
+          disabled={isLocked}
+        />
+        <Label htmlFor="autoProceed" className="text-xs cursor-pointer">
+          Auto-proceed to next screen
+        </Label>
+      </div>
+
+      {screen.autoProceed && (
+        <div className="space-y-2">
+          <Label htmlFor="duration" className="text-xs">
+            Duration (ms)
+          </Label>
+          <Input
+            id="duration"
+            type="number"
+            value={screen.duration || 3000}
+            onChange={(e) => onUpdate({ duration: parseInt(e.target.value) || 3000 })}
+            className="h-8 text-sm"
+            disabled={isLocked}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Form Fields (formerly AccountCreation)
+interface FormFieldsProps {
+  screen: FormScreen;
+  isLocked: boolean;
+  onUpdate: (updates: Partial<FormScreen>) => void;
+}
+
+function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
+
+  const toggleField = (field: "email" | "password" | "firstName" | "lastName") => {
+    const current = screen.collectFields || [];
+    const newFields = current.includes(field)
+      ? current.filter((f) => f !== field)
+      : [...current, field];
+    onUpdate({ collectFields: newFields });
+  };
+
+  const toggleProvider = (provider: "google" | "microsoft" | "clever") => {
+    const current = screen.socialProviders || [];
+    const newProviders = current.includes(provider)
+      ? current.filter((p) => p !== provider)
+      : [...current, provider];
+    onUpdate({ socialProviders: newProviders });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="headline" className="text-xs">
+          Headline
+        </Label>
+        <Input
+          id="headline"
+          value={screen.headline}
+          onChange={(e) => onUpdate({ headline: e.target.value })}
+          className="h-8 text-sm"
+          disabled={isLocked}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="copy" className="text-xs">
+          Copy
+        </Label>
+        <textarea
+          id="copy"
+          value={screen.copy}
+          onChange={(e) => onUpdate({ copy: e.target.value })}
+          className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
+          disabled={isLocked}
+        />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <Label className="text-xs">Collect Fields</Label>
+        <div className="space-y-1">
+          {(["email", "password", "firstName", "lastName"] as const).map((field) => (
+            <label key={field} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={screen.collectFields?.includes(field) || false}
+                onChange={() => toggleField(field)}
+                className="rounded"
+                disabled={isLocked}
+              />
+              {field}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="showSocialLogin"
+          checked={screen.showSocialLogin}
+          onChange={(e) => onUpdate({ showSocialLogin: e.target.checked })}
+          className="rounded"
+          disabled={isLocked}
+        />
+        <Label htmlFor="showSocialLogin" className="text-xs cursor-pointer">
+          Show social login options
+        </Label>
+      </div>
+
+      {screen.showSocialLogin && (
+        <div className="space-y-2">
+          <Label className="text-xs">Social Providers</Label>
+          <div className="space-y-1">
+            {(["google", "microsoft", "clever"] as const).map((provider) => (
+              <label key={provider} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={screen.socialProviders?.includes(provider) || false}
+                  onChange={() => toggleProvider(provider)}
+                  className="rounded"
+                  disabled={isLocked}
+                />
+                {provider}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Paywall Fields
+interface PaywallFieldsProps {
+  screen: PaywallScreen;
+  isLocked: boolean;
+  onUpdate: (updates: Partial<PaywallScreen>) => void;
+}
+
+function PaywallFields({ screen, onUpdate, isLocked }: PaywallFieldsProps) {
+  const variantKeys = Object.keys(screen.variants || {});
+
+  const handlePropChange = (index: number, value: string, variantKey?: string) => {
+    if (variantKey && screen.variants) {
+      const variant = screen.variants[variantKey];
+      const newProps = [...variant.valuePropositions];
+      newProps[index] = value;
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [variantKey]: { ...variant, valuePropositions: newProps },
+        },
+      });
+    } else if (screen.valuePropositions) {
+      const newProps = [...screen.valuePropositions];
+      newProps[index] = value;
+      onUpdate({ valuePropositions: newProps });
+    }
+  };
+
+  const handleAddProp = (variantKey?: string) => {
+    if (variantKey && screen.variants) {
+      const variant = screen.variants[variantKey];
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [variantKey]: { ...variant, valuePropositions: [...variant.valuePropositions, "New benefit"] },
+        },
+      });
+    } else {
+      onUpdate({ valuePropositions: [...(screen.valuePropositions || []), "New benefit"] });
+    }
+  };
+
+  const handleRemoveProp = (index: number, variantKey?: string) => {
+    if (variantKey && screen.variants) {
+      const variant = screen.variants[variantKey];
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [variantKey]: { ...variant, valuePropositions: variant.valuePropositions.filter((_, i) => i !== index) },
+        },
+      });
+    } else if (screen.valuePropositions) {
+      onUpdate({ valuePropositions: screen.valuePropositions.filter((_, i) => i !== index) });
+    }
+  };
+
+  const handleAddVariant = () => {
+    const newKey = `variant-${variantKeys.length + 1}`;
+    const updates: Partial<PaywallScreen> = {
+      variants: {
+        ...screen.variants,
+        [newKey]: {
+          headline: screen.headline || "Unlock the Full Experience",
+          valuePropositions: screen.valuePropositions || ["Premium feature"],
+        },
+      },
+    };
+
+    if (!screen.roleVariable) {
+      updates.roleVariable = "role";
+    }
+
+    onUpdate(updates);
+  };
+
+  const handleRemoveVariant = (key: string) => {
+    const newVariants = { ...screen.variants };
+    delete newVariants[key];
+    onUpdate({ variants: newVariants });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Defaults Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Default Content
+          </h3>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="headline" className="text-xs">
+            Headline
+          </Label>
+          <Input
+            id="headline"
+            value={screen.headline || ""}
+            onChange={(e) => onUpdate({ headline: e.target.value })}
+            className="h-8 text-sm"
+            placeholder="Headline"
+            disabled={isLocked}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">Value Propositions</Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs"
+              onClick={() => handleAddProp()}
+              disabled={isLocked}
+            >
+              <Plus size={12} className="mr-1" />
+              Add
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {(screen.valuePropositions || []).map((prop, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={prop}
+                  onChange={(e) => handlePropChange(index, e.target.value)}
+                  className="h-8 text-sm flex-1"
+                  placeholder="Benefit"
+                  disabled={isLocked}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleRemoveProp(index)}
+                  disabled={isLocked}
+                >
+                  <X size={12} />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Variants Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Role-Based Variants
+            </h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleAddVariant}
+            disabled={isLocked}
+          >
+            <Plus size={12} className="mr-1" />
+            Add Variant
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="roleVariable" className="text-xs text-gray-500">
+            Role Variable
+          </Label>
+          <Input
+            id="roleVariable"
+            value={screen.roleVariable || "role"}
+            onChange={(e) => onUpdate({ roleVariable: e.target.value })}
+            className="h-8 text-sm"
+            placeholder="role"
+            disabled={isLocked}
+          />
+        </div>
+
+        {variantKeys.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
+              Default Variant (Fallback)
+            </Label>
+            <select
+              id="defaultVariant"
+              value={screen.defaultVariant || ""}
+              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
+              className="w-full h-8 px-2 text-sm border rounded-md"
+              disabled={isLocked}
+            >
+              <option value="">None (Use Default Content)</option>
+              {variantKeys.map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="space-y-4 pt-2">
+          {variantKeys.map((key) => {
+            const variant = screen.variants?.[key];
+            if (!variant) return null;
+            return (
+              <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-gray-700 bg-white px-2 py-0.5 rounded border">{key}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-gray-400 hover:text-red-500"
+                    onClick={() => handleRemoveVariant(key)}
+                    disabled={isLocked}
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+
+                <Input
+                  value={variant.headline}
+                  onChange={(e) =>
+                    onUpdate({
+                      variants: {
+                        ...screen.variants,
+                        [key]: { ...variant, headline: e.target.value },
+                      },
+                    })
+                  }
+                  className="h-7 text-sm"
+                  placeholder="Headline override (optional)"
+                  disabled={isLocked}
+                />
+
+                <div className="space-y-2">
+                  {variant.valuePropositions.map((prop, index) => (
+                    <div key={index} className="flex items-center gap-1">
+                      <Input
+                        value={prop}
+                        onChange={(e) => handlePropChange(index, e.target.value, key)}
+                        className="h-7 text-xs flex-1"
+                        placeholder="Benefit override"
+                        disabled={isLocked}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => handleRemoveProp(index, key)}
+                        disabled={isLocked}
+                      >
+                        <X size={10} />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[10px] w-full"
+                    onClick={() => handleAddProp(key)}
+                    disabled={isLocked}
+                  >
+                    + Add Benefit
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+          {variantKeys.length === 0 && (
+            <div className="text-center p-4 border border-dashed rounded-md text-gray-400 text-xs">
+              No variants added yet.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <Label htmlFor="primaryLabel" className="text-xs">
+          Primary Button Label
+        </Label>
+        <Input
+          id="primaryLabel"
+          value={screen.primaryAction?.label || ""}
+          onChange={(e) =>
+            onUpdate({
+              primaryAction: {
+                ...(screen.primaryAction || { label: "Upgrade", action: "upgrade" }),
+                label: e.target.value,
+              },
+            })
+          }
+          className="h-8 text-sm"
+          disabled={isLocked}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="secondaryLabel" className="text-xs">
+          Secondary Button Label
+        </Label>
+        <Input
+          id="secondaryLabel"
+          value={screen.secondaryAction?.label || ""}
+          onChange={(e) =>
+            onUpdate({
+              secondaryAction: {
+                ...(screen.secondaryAction || { label: "Maybe Later", action: "continue-free" }),
+                label: e.target.value,
+              },
+            })
+          }
+          className="h-8 text-sm"
+          disabled={isLocked}
+        />
       </div>
     </div>
   );
 }
+
+// Typing Test Fields
+interface TypingTestFieldsProps {
+  screen: TypingTestScreen;
+  isLocked: boolean;
+  onUpdate: (updates: Partial<TypingTestScreen>) => void;
+}
+
+function TypingTestFields({ screen, onUpdate, isLocked }: TypingTestFieldsProps) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="prompt" className="text-xs">
+          Prompt
+        </Label>
+        <textarea
+          id="prompt"
+          value={screen.prompt}
+          onChange={(e) => onUpdate({ prompt: e.target.value })}
+          className="w-full h-16 px-3 py-2 text-sm border rounded-md resize-none"
+          disabled={isLocked}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="testText" className="text-xs">
+          Test Text
+        </Label>
+        <textarea
+          id="testText"
+          value={screen.testText}
+          onChange={(e) => onUpdate({ testText: e.target.value })}
+          className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
+          placeholder="The quick brown fox..."
+          disabled={isLocked}
+        />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <Label htmlFor="wpmVariable" className="text-xs">
+          WPM Variable
+        </Label>
+        <Input
+          id="wpmVariable"
+          value={screen.variableBindings.wpm}
+          onChange={(e) =>
+            onUpdate({ variableBindings: { ...screen.variableBindings, wpm: e.target.value } })
+          }
+          className="h-8 text-sm"
+          placeholder="currentWpm"
+          disabled={isLocked}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="accuracyVariable" className="text-xs">
+          Accuracy Variable (optional)
+        </Label>
+        <Input
+          id="accuracyVariable"
+          value={screen.variableBindings.accuracy || ""}
+          onChange={(e) =>
+            onUpdate({
+              variableBindings: { ...screen.variableBindings, accuracy: e.target.value || undefined },
+            })
+          }
+          className="h-8 text-sm"
+          placeholder="currentAccuracy"
+          disabled={isLocked}
+        />
+      </div>
+    </div>
+  );
+}
+
+// DiscoveryFields removed - use QuestionFields (MultipleChoice) instead

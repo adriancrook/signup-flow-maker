@@ -6,24 +6,24 @@ import { UserPlus, ExternalLink, CreditCard } from "lucide-react";
 import { BaseNode } from "./BaseNode";
 import type {
   FlowNodeData,
-  AccountCreationScreen,
-  SSOHandoffScreen,
+  FormScreen,
+  ExitScreen,
   PaywallScreen,
 } from "@/types/flow";
 
 function TerminalNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FlowNodeData;
-  const screen = nodeData.screen as AccountCreationScreen | SSOHandoffScreen | PaywallScreen;
+  const screen = nodeData.screen as FormScreen | ExitScreen | PaywallScreen;
 
-  if (screen.type === "account-creation") {
-    return <AccountCreationNode data={nodeData} selected={selected} screen={screen} />;
+  if (screen.type === "FORM") {
+    return <AccountCreationNode data={nodeData} selected={selected} screen={screen as FormScreen} />;
   }
 
-  if (screen.type === "sso-handoff") {
-    return <SSOHandoffNode data={nodeData} selected={selected} screen={screen} />;
+  if (screen.type === "EXIT") {
+    return <SSOHandoffNode data={nodeData} selected={selected} screen={screen as ExitScreen} />;
   }
 
-  if (screen.type === "paywall") {
+  if (screen.type === "PAY") {
     return <PaywallNode data={nodeData} selected={selected} screen={screen} />;
   }
 
@@ -37,7 +37,7 @@ function AccountCreationNode({
 }: {
   data: FlowNodeData;
   selected?: boolean;
-  screen: AccountCreationScreen;
+  screen: FormScreen;
 }) {
   return (
     <BaseNode
@@ -85,7 +85,7 @@ function SSOHandoffNode({
 }: {
   data: FlowNodeData;
   selected?: boolean;
-  screen: SSOHandoffScreen;
+  screen: ExitScreen;
 }) {
   return (
     <BaseNode
@@ -126,6 +126,22 @@ function PaywallNode({
   selected?: boolean;
   screen: PaywallScreen;
 }) {
+  // Check if using variant mode
+  const hasVariants = screen.roleVariable && screen.variants && Object.keys(screen.variants).length > 0;
+  const variantKeys = Object.keys(screen.variants || {});
+
+  // Get display content (from selected default variant or direct fields)
+  let displayHeadline: string | undefined;
+  let displayValuePropositions: string[] | undefined;
+
+  if (hasVariants && screen.defaultVariant && screen.variants?.[screen.defaultVariant]) {
+    displayHeadline = screen.variants[screen.defaultVariant].headline;
+    displayValuePropositions = screen.variants[screen.defaultVariant].valuePropositions;
+  } else {
+    displayHeadline = screen.headline;
+    displayValuePropositions = screen.valuePropositions;
+  }
+
   return (
     <BaseNode
       data={data}
@@ -134,11 +150,33 @@ function PaywallNode({
       color="bg-emerald-50"
     >
       <div className="space-y-2">
-        <p className="text-sm font-medium text-gray-700">{screen.headline}</p>
+        {/* Show variant badges if using variants */}
+        {hasVariants && (
+          <>
+            <div className="flex flex-wrap gap-1">
+              {variantKeys.map((key) => (
+                <span
+                  key={key}
+                  className={`text-[10px] rounded px-1.5 py-0.5 ${key === screen.defaultVariant
+                    ? "bg-emerald-200 text-emerald-800"
+                    : "bg-gray-100 text-gray-600"
+                    }`}
+                >
+                  {key}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-emerald-600">
+              Shows based on: [{screen.roleVariable}]
+            </p>
+          </>
+        )}
 
-        {screen.valuePropositions && screen.valuePropositions.length > 0 && (
+        <p className="text-sm font-medium text-gray-700">{displayHeadline}</p>
+
+        {displayValuePropositions && displayValuePropositions.length > 0 && (
           <ul className="space-y-1">
-            {screen.valuePropositions.slice(0, 3).map((prop, index) => (
+            {displayValuePropositions.slice(0, 3).map((prop, index) => (
               <li
                 key={index}
                 className="text-xs text-emerald-700 flex items-start gap-1"
@@ -154,9 +192,11 @@ function PaywallNode({
           <div className="bg-emerald-500 text-white text-xs rounded px-2 py-1.5 text-center font-medium">
             {screen.primaryAction.label}
           </div>
-          <div className="bg-gray-100 text-gray-600 text-xs rounded px-2 py-1 text-center">
-            {screen.secondaryAction.label}
-          </div>
+          {screen.secondaryAction && (
+            <div className="bg-gray-100 text-gray-600 text-xs rounded px-2 py-1 text-center">
+              {screen.secondaryAction.label}
+            </div>
+          )}
         </div>
       </div>
     </BaseNode>

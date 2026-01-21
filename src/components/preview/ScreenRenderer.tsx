@@ -1,19 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
-  Screen,
-  QuestionScreen,
+  Screen as FlowScreen,
+  MultipleChoiceScreen,
   MultiSelectScreen,
-  GatekeeperScreen,
   InputScreen,
-  SocialProofScreen,
+  MessageScreen,
   InterstitialScreen,
-  DiscoveryScreen,
-  AccountCreationScreen,
-  SSOHandoffScreen,
+  FormScreen,
   PaywallScreen,
   TypingTestScreen,
 } from "@/types/flow";
@@ -30,7 +27,12 @@ export function ScreenRenderer({
   variables,
   onSetVariable,
   onNext,
-}: ScreenRendererProps) {
+}: {
+  screen: FlowScreen;
+  variables: Record<string, string | number | boolean | string[]>;
+  onSetVariable: (name: string, value: string | number | boolean | string[]) => void;
+  onNext: (selectedValue?: string, targetScreenId?: string) => void;
+}) {
   // Interpolate variables in text
   const interpolate = (text: string): string => {
     return text.replace(/\[(\w+)\]/g, (_, varName) => {
@@ -40,88 +42,102 @@ export function ScreenRenderer({
     });
   };
 
-  switch (screen.type) {
-    case "gatekeeper":
-    case "question":
-    case "discovery":
+  switch (screen.type as string) {
+    case "MC":
+    case "gatekeeper": // Legacy
+    case "question": // Legacy
+    case "discovery": // Legacy (consolidated to MC)
       return (
         <QuestionRenderer
-          screen={screen as QuestionScreen | GatekeeperScreen | DiscoveryScreen}
+          screen={screen as unknown as MultipleChoiceScreen}
+          variables={variables}
           interpolate={interpolate}
           onSetVariable={onSetVariable}
           onNext={onNext}
         />
       );
 
-    case "multi-select":
+    case "MS":
+    case "multi-select": // Legacy
       return (
         <MultiSelectRenderer
-          screen={screen as MultiSelectScreen}
+          screen={screen as unknown as MultiSelectScreen}
           interpolate={interpolate}
           onSetVariable={onSetVariable}
           onNext={onNext}
         />
       );
 
-    case "input":
+    case "TXT":
+    case "NUM":
+    case "input": // Legacy
       return (
         <InputRenderer
-          screen={screen as InputScreen}
+          screen={screen as unknown as InputScreen}
           interpolate={interpolate}
           onSetVariable={onSetVariable}
           onNext={onNext}
         />
       );
 
-    case "social-proof":
+    case "MSG":
+    case "social-proof": // Legacy
+    case "affirmation": // Legacy
       return (
-        <SocialProofRenderer
-          screen={screen as SocialProofScreen}
+        <MessageRenderer
+          screen={screen as unknown as MessageScreen}
           variables={variables}
           interpolate={interpolate}
           onNext={onNext}
         />
       );
 
-    case "interstitial":
+    case "INT":
+    case "interstitial": // Legacy
       return (
         <InterstitialRenderer
-          screen={screen as InterstitialScreen}
+          screen={screen as unknown as InterstitialScreen}
+          variables={variables}
           interpolate={interpolate}
           onNext={onNext}
         />
       );
 
-    case "account-creation":
+    case "FORM":
+    case "account-creation": // Legacy
       return (
-        <AccountCreationRenderer
-          screen={screen as AccountCreationScreen}
+        <FormRenderer
+          screen={screen as unknown as FormScreen}
           interpolate={interpolate}
           onNext={onNext}
         />
       );
 
-    case "sso-handoff":
+    case "EXIT":
+    case "sso-handoff": // Legacy
       return (
-        <SSOHandoffRenderer
-          screen={screen as SSOHandoffScreen}
+        <ExitRenderer
+          screen={screen as any} // Exit/Terminal logic generic
           interpolate={interpolate}
         />
       );
 
-    case "paywall":
+    case "PAY":
+    case "paywall": // Legacy
       return (
         <PaywallRenderer
-          screen={screen as PaywallScreen}
+          screen={screen as unknown as PaywallScreen}
+          variables={variables}
           interpolate={interpolate}
           onNext={onNext}
         />
       );
 
-    case "typing-test":
+    case "TEST":
+    case "typing-test": // Legacy
       return (
         <TypingTestRenderer
-          screen={screen as TypingTestScreen}
+          screen={screen as unknown as TypingTestScreen}
           interpolate={interpolate}
           onSetVariable={onSetVariable}
           onNext={onNext}
@@ -142,20 +158,47 @@ export function ScreenRenderer({
   }
 }
 
-// Question Renderer
+// Question Renderer - supports role-based variants for MultipleChoiceScreen
 function QuestionRenderer({
   screen,
+  variables,
   interpolate,
   onSetVariable,
   onNext,
 }: {
-  screen: QuestionScreen | GatekeeperScreen | DiscoveryScreen;
+  screen: MultipleChoiceScreen;
+  variables: Record<string, unknown>;
   interpolate: (text: string) => string;
   onSetVariable: (name: string, value: string) => void;
   onNext: (value?: string, targetScreenId?: string) => void;
 }) {
-  const handleSelect = (option: { value: string; nextScreenId?: string }) => {
-    if ("variableBinding" in screen && screen.variableBinding) {
+  // Determine which content to show based on variant mode
+  let question: string;
+  let options: typeof screen.options;
+
+  if (screen.roleVariable && screen.variants) {
+    // Variant mode - select based on role variable
+    const roleValue = String(variables[screen.roleVariable] || "");
+    const variant =
+      screen.variants[roleValue] ||
+      (screen.defaultVariant ? screen.variants[screen.defaultVariant] : null);
+
+    if (variant) {
+      question = variant.question || screen.question || "Select an option";
+      options = variant.options;
+    } else {
+      // Fallback to simple mode fields
+      question = screen.question || "Select an option";
+      options = screen.options || [];
+    }
+  } else {
+    // Simple mode - use direct fields
+    question = screen.question || "Select an option";
+    options = screen.options || [];
+  }
+
+  const handleSelect = (option: { value: string; nextScreenId?: string; description?: string }) => {
+    if (screen.variableBinding) {
       onSetVariable(screen.variableBinding, option.value);
     }
     onNext(option.value, option.nextScreenId);
@@ -165,10 +208,10 @@ function QuestionRenderer({
     <div className="p-6 flex flex-col h-full">
       <div className="flex-1">
         <h2 className="text-xl font-semibold mb-2">{screen.title}</h2>
-        <p className="text-gray-600 mb-6">{interpolate(screen.question)}</p>
+        <p className="text-gray-600 mb-6">{interpolate(question)}</p>
 
         <div className="space-y-3">
-          {screen.options.map((option) => (
+          {(options || []).map((option) => (
             <button
               key={option.id}
               onClick={() => handleSelect(option)}
@@ -187,6 +230,9 @@ function QuestionRenderer({
     </div>
   );
 }
+
+// DiscoveryRenderer is deprecated/merged into QuestionRenderer
+// Removing it to avoid confusion or errors. Use QuestionRenderer for all MC types.
 
 // Multi-Select Renderer
 function MultiSelectRenderer({
@@ -231,19 +277,17 @@ function MultiSelectRenderer({
             <button
               key={option.id}
               onClick={() => toggleOption(option.value)}
-              className={`w-full p-4 text-left border-2 rounded-lg transition-colors ${
-                selected.includes(option.value)
-                  ? "border-blue-500 bg-blue-50"
-                  : "hover:border-gray-300"
-              }`}
+              className={`w-full p-4 text-left border-2 rounded-lg transition-colors ${selected.includes(option.value)
+                ? "border-blue-500 bg-blue-50"
+                : "hover:border-gray-300"
+                }`}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                    selected.includes(option.value)
-                      ? "border-blue-500 bg-blue-500"
-                      : "border-gray-300"
-                  }`}
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selected.includes(option.value)
+                    ? "border-blue-500 bg-blue-500"
+                    : "border-gray-300"
+                    }`}
                 >
                   {selected.includes(option.value) && (
                     <svg
@@ -338,51 +382,84 @@ function InputRenderer({
   );
 }
 
-// Social Proof Renderer
-function SocialProofRenderer({
+// SocialProofRenderer is deprecated/merged into MessageRenderer
+// Removing usage to clean up.
+
+// Message Renderer (formerly Affirmation/SocialProof)
+function MessageRenderer({
   screen,
   variables,
   interpolate,
   onNext,
 }: {
-  screen: SocialProofScreen;
+  screen: MessageScreen;
   variables: Record<string, unknown>;
   interpolate: (text: string) => string;
   onNext: () => void;
 }) {
-  const roleValue = String(variables[screen.roleVariable] || "");
-  const variant =
-    screen.variants[roleValue] || screen.variants[screen.defaultVariant];
+  // Determine which content to show
+  let headline: string;
+  let copy: string;
 
-  if (!variant) {
-    return (
-      <div className="p-6 text-center">
-        <p>No variant configured</p>
-        <Button className="mt-4" onClick={() => onNext()}>
-          Continue
-        </Button>
-      </div>
-    );
+  if (screen.conditionVariable && screen.variants) {
+    // Conditional mode - select variant based on variable value
+    const conditionValue = String(variables[screen.conditionVariable] || "");
+    const variant =
+      screen.variants[conditionValue] ||
+      (screen.defaultVariant ? screen.variants[screen.defaultVariant] : null);
+
+    if (variant) {
+      headline = variant.headline;
+      copy = variant.copy;
+    } else {
+      headline = screen.headline || "Great!";
+      copy = screen.copy || "";
+    }
+  } else {
+    // Simple mode - use static headline and copy
+    headline = screen.headline || "Great!";
+    copy = screen.copy || "";
   }
+
+  // Auto-proceed after duration if enabled
+  useEffect(() => {
+    if (screen.autoProceed) {
+      const timer = setTimeout(() => {
+        onNext();
+      }, screen.duration || 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [screen.autoProceed, screen.duration, onNext]);
 
   return (
     <div className="p-6 flex flex-col h-full items-center justify-center text-center">
       <div className="max-w-sm">
-        <h2 className="text-2xl font-bold mb-4">{variant.headline}</h2>
-        <p className="text-gray-600 mb-8">{interpolate(variant.copy)}</p>
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg
+            className="w-8 h-8 text-green-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
 
-        {variant.stats && variant.stats.length > 0 && (
-          <div className="flex justify-center gap-8 mb-8">
-            {variant.stats.map((stat, i) => (
-              <div key={i}>
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-sm text-gray-500">{stat.label}</p>
-              </div>
-            ))}
-          </div>
+        <h2 className="text-2xl font-bold mb-4">{headline}</h2>
+        <p className="text-gray-600 mb-8">{interpolate(copy)}</p>
+
+        {!screen.autoProceed && (
+          <Button onClick={() => onNext()}>Continue</Button>
         )}
 
-        <Button onClick={() => onNext()}>Continue</Button>
+        {screen.autoProceed && (
+          <p className="text-sm text-gray-400">Continuing automatically...</p>
+        )}
       </div>
     </div>
   );
@@ -391,21 +468,53 @@ function SocialProofRenderer({
 // Interstitial Renderer
 function InterstitialRenderer({
   screen,
+  variables,
   interpolate,
   onNext,
 }: {
   screen: InterstitialScreen;
+  variables: Record<string, unknown>;
   interpolate: (text: string) => string;
   onNext: () => void;
 }) {
   const [messageIndex, setMessageIndex] = useState(0);
 
+  // Determine which content to show based on variant mode
+  let headline: string;
+  let messages: typeof screen.messages;
+
+  if (screen.roleVariable && screen.variants) {
+    // Variant mode - select based on role variable
+    const roleValue = String(variables[screen.roleVariable] || "");
+    const variant =
+      screen.variants[roleValue] ||
+      (screen.defaultVariant ? screen.variants[screen.defaultVariant] : null);
+
+    if (variant) {
+      headline = variant.headline;
+      messages = variant.messages;
+    } else {
+      // Fallback to simple mode fields
+      headline = screen.headline || "Loading...";
+      messages = screen.messages || [];
+    }
+  } else {
+    // Simple mode - use direct fields
+    headline = screen.headline || "Loading...";
+    messages = screen.messages || [];
+  }
+
   // Auto-advance messages and complete
-  useState(() => {
-    const messageInterval = screen.duration / screen.messages.length;
+  useEffect(() => {
+    if (!messages || messages.length === 0) {
+      setTimeout(() => onNext(), screen.duration);
+      return;
+    }
+
+    const messageInterval = screen.duration / messages.length;
     const interval = setInterval(() => {
       setMessageIndex((prev) => {
-        if (prev >= screen.messages.length - 1) {
+        if (prev >= messages.length - 1) {
           clearInterval(interval);
           setTimeout(() => onNext(), 500);
           return prev;
@@ -415,24 +524,24 @@ function InterstitialRenderer({
     }, messageInterval);
 
     return () => clearInterval(interval);
-  });
+  }, [screen.duration, messages, onNext]);
 
-  const currentMessage = screen.messages[messageIndex];
+  const currentMessage = messages?.[messageIndex];
 
   return (
     <div className="p-6 flex flex-col h-full items-center justify-center text-center">
-      <h2 className="text-xl font-semibold mb-6">{screen.headline}</h2>
+      <h2 className="text-xl font-semibold mb-6">{headline}</h2>
 
       {screen.animation === "spinner" && (
         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin mb-6" />
       )}
 
-      {screen.animation === "progress-bar" && (
+      {screen.animation === "progress-bar" && messages && messages.length > 0 && (
         <div className="w-64 h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
           <div
             className="h-full bg-blue-500 transition-all duration-500"
             style={{
-              width: `${((messageIndex + 1) / screen.messages.length) * 100}%`,
+              width: `${((messageIndex + 1) / messages.length) * 100}%`,
             }}
           />
         </div>
@@ -459,13 +568,13 @@ function InterstitialRenderer({
   );
 }
 
-// Account Creation Renderer
-function AccountCreationRenderer({
+// Form Renderer (formerly AccountCreation)
+function FormRenderer({
   screen,
   interpolate,
   onNext,
 }: {
-  screen: AccountCreationScreen;
+  screen: FormScreen;
   interpolate: (text: string) => string;
   onNext: () => void;
 }) {
@@ -519,12 +628,12 @@ function AccountCreationRenderer({
   );
 }
 
-// SSO Handoff Renderer
-function SSOHandoffRenderer({
+// Exit Renderer (formerly SSOHandoff)
+function ExitRenderer({
   screen,
   interpolate,
 }: {
-  screen: SSOHandoffScreen;
+  screen: any; // Generic exit screen often relies on copy/headline which BaseScreen might not strictly enforce in union
   interpolate: (text: string) => string;
 }) {
   return (
@@ -541,23 +650,50 @@ function SSOHandoffRenderer({
   );
 }
 
-// Paywall Renderer
+// Paywall Renderer - supports role-based variants
 function PaywallRenderer({
   screen,
+  variables,
   interpolate,
   onNext,
 }: {
   screen: PaywallScreen;
+  variables: Record<string, unknown>;
   interpolate: (text: string) => string;
   onNext: () => void;
 }) {
+  // Determine which content to show based on variant mode
+  let headline: string;
+  let valuePropositions: string[];
+
+  if (screen.roleVariable && screen.variants) {
+    // Variant mode - select based on role variable
+    const roleValue = String(variables[screen.roleVariable] || "");
+    const variant =
+      screen.variants[roleValue] ||
+      (screen.defaultVariant ? screen.variants[screen.defaultVariant] : null);
+
+    if (variant) {
+      headline = variant.headline;
+      valuePropositions = variant.valuePropositions;
+    } else {
+      // Fallback to simple mode fields
+      headline = screen.headline || "Upgrade to Plus";
+      valuePropositions = screen.valuePropositions || [];
+    }
+  } else {
+    // Simple mode - use direct fields
+    headline = screen.headline || "Upgrade to Plus";
+    valuePropositions = screen.valuePropositions || [];
+  }
+
   return (
     <div className="p-6 flex flex-col h-full">
       <div className="flex-1">
-        <h2 className="text-xl font-semibold mb-4">{screen.headline}</h2>
+        <h2 className="text-xl font-semibold mb-4">{headline}</h2>
 
         <ul className="space-y-3 mb-8">
-          {screen.valuePropositions.map((prop, i) => (
+          {valuePropositions.map((prop, i) => (
             <li key={i} className="flex items-start gap-3">
               <span className="text-green-500">✓</span>
               <span>{interpolate(prop)}</span>
@@ -568,15 +704,17 @@ function PaywallRenderer({
 
       <div className="space-y-3">
         <Button className="w-full" size="lg">
-          {screen.primaryAction.label}
+          {screen.primaryAction?.label || "Continue"}
         </Button>
-        <Button
-          variant="ghost"
-          className="w-full"
-          onClick={() => onNext()}
-        >
-          {screen.secondaryAction.label}
-        </Button>
+        {screen.secondaryAction && (
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => onNext()}
+          >
+            {screen.secondaryAction.label}
+          </Button>
+        )}
       </div>
     </div>
   );

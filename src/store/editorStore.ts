@@ -21,6 +21,8 @@ import type {
   FlowVariable,
   FlowSettings,
 } from "@/types/flow";
+import { hydrateFlow } from "@/lib/flowHydrator";
+import { blueprints } from "@/data/blueprints";
 
 export type FlowNode = Node<FlowNodeData>;
 export type FlowEdge = Edge<FlowEdgeData>;
@@ -39,6 +41,7 @@ interface EditorState {
   // Selection
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
+  selectedLibraryItemId: string | null;
 
   // Editor state
   isDirty: boolean;
@@ -52,8 +55,10 @@ interface EditorState {
 
   // Actions
   setFlow: (flow: Flow) => void;
+  loadFromBlueprint: (blueprintId: string) => void;
   createNewFlow: (name: string, category: "individual" | "educator") => void;
   updateFlowMeta: (updates: Partial<Pick<Flow, "name" | "description" | "settings">>) => void;
+  setEntryScreen: (nodeId: string) => void;
 
   // Node actions
   addNode: (screen: Partial<Screen>, position: { x: number; y: number }) => string;
@@ -74,6 +79,7 @@ interface EditorState {
   // Selection
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edgeId: string | null) => void;
+  selectLibraryItem: (itemId: string | null) => void;
   clearSelection: () => void;
 
   // Variable management
@@ -105,6 +111,29 @@ function screensToNodes(screens: Screen[]): FlowNode[] {
       isHighlighted: false,
     },
   }));
+}
+
+// Convert nodes back to screens, using edges to reconstruct flow paths
+function nodesToScreens(nodes: FlowNode[], edges: FlowEdge[]): Screen[] {
+  return nodes.map((node) => {
+    const screen = { ...node.data.screen, position: node.position };
+
+    // Find default next screen (simple edge)
+    const defaultEdge = edges.find(
+      (e) => e.source === node.id && e.data?.isDefault
+    );
+    if (defaultEdge) {
+      screen.nextScreenId = defaultEdge.target;
+    } else {
+      screen.nextScreenId = undefined;
+    }
+
+    // Reconstruct branching logic from edges would go here if needed
+    // But typically we store that in screen data too. 
+    // For now, nextScreenId is the critical one missing from pure node data.
+
+    return screen;
+  });
 }
 
 // Convert screens to React Flow edges
@@ -164,13 +193,7 @@ function screensToEdges(screens: Screen[]): FlowEdge[] {
   return edges;
 }
 
-// Convert nodes back to screens
-function nodesToScreens(nodes: FlowNode[]): Screen[] {
-  return nodes.map((node) => ({
-    ...node.data.screen,
-    position: node.position,
-  }));
-}
+
 
 const defaultFlowSettings: FlowSettings = {
   showProgressBar: true,
@@ -189,6 +212,7 @@ export const useEditorStore = create<EditorState>()(
       edges: [],
       selectedNodeId: null,
       selectedEdgeId: null,
+      selectedLibraryItemId: null,
       isDirty: false,
       isValidating: false,
       validationErrors: [],
@@ -205,6 +229,46 @@ export const useEditorStore = create<EditorState>()(
           state.isDirty = false;
           state.selectedNodeId = null;
           state.selectedEdgeId = null;
+          state.selectedLibraryItemId = null;
+        });
+      },
+
+      // Load from Blueprint
+      loadFromBlueprint: (blueprintId) => {
+        const blueprint = blueprints[blueprintId];
+        if (!blueprint) {
+          console.warn(`Blueprint not found: ${blueprintId}`);
+          return;
+        }
+
+        const { nodes, edges } = hydrateFlow(blueprint);
+
+        // Create screens from nodes + edges to ensure linkages are preserved
+        const screens = nodesToScreens(nodes as FlowNode[], edges as FlowEdge[]);
+
+        const flow: Flow = {
+          id: blueprintId,
+          name: blueprintId, // Placeholder name
+          description: "Generated from Blueprint",
+          category: "individual", // Default, should be inferred or passed
+          targetPortal: "student",
+          version: "1.0.0",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          entryScreenId: nodes[0]?.id || "",
+          screens: screens,
+          variables: [],
+          settings: defaultFlowSettings
+        };
+
+        set((state) => {
+          state.currentFlow = flow;
+          state.nodes = nodes as FlowNode[];
+          state.edges = edges as FlowEdge[];
+          state.isDirty = true;
+          state.selectedNodeId = null;
+          state.selectedEdgeId = null;
+          state.selectedLibraryItemId = null;
         });
       },
 
@@ -243,6 +307,22 @@ export const useEditorStore = create<EditorState>()(
         });
       },
 
+      // Set entry screen
+      setEntryScreen: (nodeId) => {
+        set((state) => {
+          if (state.currentFlow) {
+            // Toggle off if already selected
+            if (state.currentFlow.entryScreenId === nodeId) {
+              state.currentFlow.entryScreenId = "";
+            } else {
+              state.currentFlow.entryScreenId = nodeId;
+            }
+            state.currentFlow.updatedAt = new Date().toISOString();
+            state.isDirty = true;
+          }
+        });
+      },
+
       // Add node
       addNode: (screenPartial, position) => {
         const id = nanoid();
@@ -251,6 +331,7 @@ export const useEditorStore = create<EditorState>()(
           type: screenPartial.type || "question",
           title: screenPartial.title || "New Screen",
           position,
+          isLocked: true,
           ...screenPartial,
         } as Screen;
 
@@ -287,7 +368,12 @@ export const useEditorStore = create<EditorState>()(
           const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
           if (nodeIndex !== -1) {
             const node = state.nodes[nodeIndex];
-            node.data.screen = { ...node.data.screen, ...screenUpdates } as Screen;
+            const updatedScreen = { ...node.data.screen, ...screenUpdates } as Screen;
+            // Create new data object reference so React Flow's memoized nodes re-render
+            node.data = {
+              ...node.data,
+              screen: updatedScreen,
+            };
           }
           if (state.currentFlow) {
             const screenIndex = state.currentFlow.screens.findIndex((s) => s.id === nodeId);
@@ -476,6 +562,7 @@ export const useEditorStore = create<EditorState>()(
         set((state) => {
           state.selectedNodeId = nodeId;
           state.selectedEdgeId = null;
+          state.selectedLibraryItemId = null;
           // Update node selection state
           state.nodes.forEach((node) => {
             node.data.isSelected = node.id === nodeId;
@@ -487,6 +574,18 @@ export const useEditorStore = create<EditorState>()(
         set((state) => {
           state.selectedEdgeId = edgeId;
           state.selectedNodeId = null;
+          state.selectedLibraryItemId = null;
+          state.nodes.forEach((node) => {
+            node.data.isSelected = false;
+          });
+        });
+      },
+
+      selectLibraryItem: (itemId) => {
+        set((state) => {
+          state.selectedLibraryItemId = itemId;
+          state.selectedNodeId = null;
+          state.selectedEdgeId = null;
           state.nodes.forEach((node) => {
             node.data.isSelected = false;
           });
@@ -497,6 +596,7 @@ export const useEditorStore = create<EditorState>()(
         set((state) => {
           state.selectedNodeId = null;
           state.selectedEdgeId = null;
+          state.selectedLibraryItemId = null;
           state.nodes.forEach((node) => {
             node.data.isSelected = false;
           });
@@ -567,8 +667,8 @@ export const useEditorStore = create<EditorState>()(
         const state = get();
         if (!state.currentFlow) return "";
 
-        // Sync node positions to screens
-        const screens = nodesToScreens(state.nodes);
+        // Sync node positions and edges to screens
+        const screens = nodesToScreens(state.nodes, state.edges);
         const flow: Flow = {
           ...state.currentFlow,
           screens,
@@ -614,3 +714,5 @@ export const selectSelectedScreen = (state: EditorState) =>
 
 export const selectVariables = (state: EditorState) =>
   state.currentFlow?.variables || [];
+
+export const selectCurrentFlow = (state: EditorState) => state.currentFlow;

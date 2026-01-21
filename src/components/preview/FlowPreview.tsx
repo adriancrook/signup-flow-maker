@@ -99,7 +99,7 @@ export function FlowPreview() {
       }
 
       // Fallback to default for branch screens
-      if (!nextScreenId && currentScreen.type === "branch") {
+      if (!nextScreenId && currentScreen.type === "LOGIC") {
         nextScreenId = (currentScreen as { defaultScreenId?: string }).defaultScreenId;
       }
 

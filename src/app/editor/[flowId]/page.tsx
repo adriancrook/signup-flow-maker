@@ -9,6 +9,7 @@ import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { ComponentLibrary } from "@/components/panels/ComponentLibrary";
 import { PropertiesPanel } from "@/components/panels/PropertiesPanel";
 import { FlowPreview } from "@/components/preview/FlowPreview";
+import { blueprints } from "@/data/blueprints";
 
 // Flow metadata for display
 const flowMeta: Record<string, { name: string; category: "individual" | "educator" }> = {
@@ -31,6 +32,7 @@ export default function EditorPage() {
     currentFlow,
     createNewFlow,
     loadFlowJson,
+    loadFromBlueprint,
     leftPanelOpen,
     rightPanelOpen,
     previewMode,
@@ -49,6 +51,14 @@ export default function EditorPage() {
       }
 
       try {
+        // PRIORITY 1: Check if a Blueprint exists for this ID
+        if (blueprints[flowId]) {
+          loadFromBlueprint(flowId);
+          setIsLoading(false);
+          return;
+        }
+
+        // PRIORITY 2: Legacy JSON loading (Fallback)
         // Dynamically import the JSON file
         const flowModule = await import(`@/data/flows/${flowId}.json`);
         const flowData = flowModule.default;
@@ -93,7 +103,7 @@ export default function EditorPage() {
     }
 
     loadFlow();
-  }, [flowId, createNewFlow, loadFlowJson]);
+  }, [flowId, createNewFlow, loadFlowJson, loadFromBlueprint]);
 
   const meta = flowMeta[flowId];
 

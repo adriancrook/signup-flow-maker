@@ -1,15 +1,37 @@
 "use client";
 
 import { memo } from "react";
-import type { NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { HelpCircle, CheckSquare } from "lucide-react";
 import { BaseNode } from "./BaseNode";
-import type { FlowNodeData, QuestionScreen, MultiSelectScreen } from "@/types/flow";
+import type { FlowNodeData, MultipleChoiceScreen, MultiSelectScreen } from "@/types/flow";
 
 function QuestionNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FlowNodeData;
-  const screen = nodeData.screen as QuestionScreen | MultiSelectScreen;
-  const isMultiSelect = screen.type === "multi-select";
+  const screen = nodeData.screen as MultipleChoiceScreen | MultiSelectScreen;
+  const isMultiSelect = screen.type === "MS";
+
+  // Check if this question has role-based variants (only MultipleChoiceScreen supports this)
+  const hasVariants =
+    screen.type === "MC" && !!(screen as MultipleChoiceScreen).roleVariable;
+  const variantKeys = hasVariants
+    ? Object.keys((screen as MultipleChoiceScreen).variants || {})
+    : [];
+
+  // Get question and options - use default variant content if in variant mode, otherwise direct fields
+  let displayQuestion: string | undefined;
+  let displayOptions: typeof screen.options;
+
+  if (hasVariants && (screen as MultipleChoiceScreen).variants) {
+    const defaultVariant = (screen as MultipleChoiceScreen).variants![
+      (screen as MultipleChoiceScreen).defaultVariant || ""
+    ];
+    displayQuestion = defaultVariant?.question || screen.question;
+    displayOptions = defaultVariant?.options || screen.options;
+  } else {
+    displayQuestion = screen.question;
+    displayOptions = screen.options;
+  }
 
   return (
     <BaseNode
@@ -17,16 +39,39 @@ function QuestionNodeComponent({ data, selected }: NodeProps) {
       selected={selected}
       icon={isMultiSelect ? <CheckSquare size={16} /> : <HelpCircle size={16} />}
       color="bg-white"
+      showSourceHandle={false}
     >
       <div className="space-y-2">
-        <p className="text-sm text-gray-700 line-clamp-2">{screen.question}</p>
+        {/* Variant badges */}
+        {hasVariants && variantKeys.length > 0 && (
+          <>
+            <div className="flex flex-wrap gap-1 mb-1">
+              {variantKeys.map((key) => (
+                <span
+                  key={key}
+                  className={`text-[10px] px-1.5 py-0.5 rounded ${key === (screen as MultipleChoiceScreen).defaultVariant
+                    ? "bg-purple-200 text-purple-800"
+                    : "bg-gray-100 text-gray-600"
+                    }`}
+                >
+                  {key}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-purple-600">
+              Shows based on: [{(screen as MultipleChoiceScreen).roleVariable}]
+            </p>
+          </>
+        )}
 
-        {screen.options && screen.options.length > 0 && (
+        <p className="text-sm text-gray-700 line-clamp-2">{displayQuestion}</p>
+
+        {displayOptions && displayOptions.length > 0 && (
           <div className="space-y-1">
-            {screen.options.slice(0, 3).map((option) => (
+            {displayOptions.slice(0, 3).map((option) => (
               <div
                 key={option.id}
-                className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1"
+                className="relative flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1 group"
               >
                 <div
                   className={cn(
@@ -34,15 +79,25 @@ function QuestionNodeComponent({ data, selected }: NodeProps) {
                     isMultiSelect ? "rounded" : "rounded-full"
                   )}
                 />
-                <span className="truncate">{option.label}</span>
+                <span className="truncate flex-1">{option.label}</span>
+                {/* Visual indicator of flow */}
                 {option.nextScreenId && (
-                  <span className="ml-auto text-blue-500">→</span>
+                  <span className="text-blue-500">→</span>
                 )}
+
+                {/* Actual Source Handle for wiring */}
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={option.id}
+                  className="!w-2 !h-2 !bg-blue-400 !border-2 !border-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ right: -4 }}
+                />
               </div>
             ))}
-            {screen.options.length > 3 && (
+            {displayOptions.length > 3 && (
               <p className="text-xs text-gray-400 pl-2">
-                +{screen.options.length - 3} more options
+                +{displayOptions.length - 3} more options
               </p>
             )}
           </div>

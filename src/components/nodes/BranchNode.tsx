@@ -4,11 +4,11 @@ import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { GitBranch } from "lucide-react";
 import { BaseNode } from "./BaseNode";
-import type { FlowNodeData, BranchScreen } from "@/types/flow";
+import type { FlowNodeData, LogicScreen } from "@/types/flow";
 
 function BranchNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FlowNodeData;
-  const screen = nodeData.screen as BranchScreen;
+  const screen = nodeData.screen as LogicScreen;
 
   return (
     <BaseNode

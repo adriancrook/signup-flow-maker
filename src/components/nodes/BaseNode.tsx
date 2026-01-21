@@ -2,6 +2,7 @@
 
 import { memo, type ReactNode } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Lock as LockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FlowNodeData } from "@/types/flow";
 
@@ -55,8 +56,9 @@ function BaseNodeComponent({
       >
         {icon && <div className="text-gray-500">{icon}</div>}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1">
             {screen.type.replace("-", " ")}
+            {screen.isLocked !== false && <LockIcon size={10} className="text-gray-400" />}
           </p>
           <p className="text-sm font-semibold text-gray-900 truncate">
             {screen.title}

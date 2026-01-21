@@ -3,21 +3,23 @@
 export type FlowCategory = "individual" | "educator";
 export type TargetPortal = "student" | "teacher";
 
+// Granular Component Types
+// Granular Component Types
 export type ScreenType =
-  | "gatekeeper"
-  | "question"
-  | "multi-select"
-  | "input"
-  | "typing-test"
-  | "branch"
-  | "interstitial"
-  | "social-proof"
-  | "affirmation"
-  | "confirm-location"
-  | "discovery"
-  | "account-creation"
-  | "sso-handoff"
-  | "paywall";
+  | "MC" // Multiple Choice
+  | "MS" // Multi-Select
+  | "TXT" // Text Input
+  | "NUM" // Number Input
+  | "TEST" // Typing Test
+  | "MSG" // Message/Affirmation
+  | "INT" // Interstitial
+  | "FORM" // Account Creation
+  | "PAY" // Paywall
+  | "EXIT" // Handoff
+  | "LOGIC"; // Branch/Logic
+
+// Component Code format: [TYPE]-[SLUG]-[VARIANT]
+export type ComponentCode = string;
 
 export type ConditionOperator =
   | "equals"
@@ -82,16 +84,6 @@ export interface Branch {
   label?: string;
 }
 
-// Affirmation displayed after a screen
-export interface Affirmation {
-  id: string;
-  headline?: string;
-  copy: string; // Supports [variable] interpolation
-  duration?: number; // ms
-  style: "toast" | "inline" | "modal";
-  icon?: string;
-}
-
 // Validation Rule for inputs
 export interface ValidationRule {
   type: "required" | "email" | "minLength" | "maxLength" | "pattern";
@@ -110,6 +102,12 @@ export interface QuestionOption {
   setVariables?: Record<string, string | number | boolean>;
 }
 
+// Question Variant - role-specific question and options
+export interface QuestionVariant {
+  question?: string; // Optional to allow variants to just override options
+  options: QuestionOption[];
+}
+
 // Interstitial Message
 export interface InterstitialMessage {
   text: string; // Supports [variable] interpolation
@@ -117,46 +115,46 @@ export interface InterstitialMessage {
   condition?: BranchCondition;
 }
 
-// Social Proof Variant
-export interface SocialProofVariant {
-  headline: string;
-  copy: string;
-  stats?: { label: string; value: string }[];
-}
-
 // Base Screen - all screen types extend this
 export interface BaseScreen {
   id: string;
   type: ScreenType;
+  componentCode?: ComponentCode; // e.g., MC-PURPOSE-STU
   title: string;
   subtitle?: string;
   position: { x: number; y: number };
   nextScreenId?: string;
   branches?: Branch[];
-  affirmation?: Affirmation;
   tags?: string[];
   notes?: string;
+  isLocked?: boolean;
 }
 
-// Gatekeeper Screen - role selection entry point
-export interface GatekeeperScreen extends BaseScreen {
-  type: "gatekeeper";
-  question: string;
-  options: QuestionOption[];
-  variableBinding: string;
+// Logic Screen - pure routing logic (invisible to user)
+export interface LogicScreen extends BaseScreen {
+  type: "LOGIC";
+  branches: Branch[];
+  defaultScreenId: string;
 }
 
-// Question Screen - single select
-export interface QuestionScreen extends BaseScreen {
-  type: "question";
-  question: string;
-  options: QuestionOption[];
+// Multiple Choice Screen (MC)
+// Replaces: Gatekeeper, Question, Discovery, ConfirmLocation
+export interface MultipleChoiceScreen extends BaseScreen {
+  type: "MC";
+  // Content
+  question?: string;
+  options?: QuestionOption[];
+  // Data Binding
   variableBinding?: string;
+  // Variant Logic
+  roleVariable?: string;
+  variants?: Record<string, QuestionVariant>;
+  defaultVariant?: string;
 }
 
-// Multi-Select Screen
+// Multi-Select Screen (MS)
 export interface MultiSelectScreen extends BaseScreen {
-  type: "multi-select";
+  type: "MS";
   question: string;
   options: QuestionOption[];
   minSelections?: number;
@@ -164,9 +162,9 @@ export interface MultiSelectScreen extends BaseScreen {
   variableBinding: string;
 }
 
-// Input Screen - text input
+// Input Screen (TXT | NUM)
 export interface InputScreen extends BaseScreen {
-  type: "input";
+  type: "TXT" | "NUM";
   prompt: string;
   inputType: "text" | "email" | "number" | "textarea";
   placeholder?: string;
@@ -174,9 +172,9 @@ export interface InputScreen extends BaseScreen {
   variableBinding: string;
 }
 
-// Typing Test Screen
+// Typing Test Screen (TEST)
 export interface TypingTestScreen extends BaseScreen {
-  type: "typing-test";
+  type: "TEST";
   prompt: string;
   testText: string;
   minDuration?: number;
@@ -186,115 +184,108 @@ export interface TypingTestScreen extends BaseScreen {
   };
 }
 
-// Branch Screen - pure routing logic (invisible to user)
-export interface BranchScreen extends BaseScreen {
-  type: "branch";
-  branches: Branch[];
-  defaultScreenId: string;
-}
-
-// Interstitial Screen - animated loading/transition
-export interface InterstitialScreen extends BaseScreen {
-  type: "interstitial";
+// Interstitial Variant - role-specific content
+export interface InterstitialVariant {
   headline: string;
   messages: InterstitialMessage[];
+}
+
+// Interstitial Screen (INT)
+export interface InterstitialScreen extends BaseScreen {
+  type: "INT";
+  // Simple mode
+  headline?: string;
+  messages?: InterstitialMessage[];
+  // Variant mode
+  roleVariable?: string;
+  variants?: Record<string, InterstitialVariant>;
+  defaultVariant?: string;
+  // Settings
   duration: number;
   animation: "spinner" | "progress-bar" | "dots";
 }
 
-// Social Proof Screen with role variants
-export interface SocialProofScreen extends BaseScreen {
-  type: "social-proof";
-  variants: Record<string, SocialProofVariant>;
-  defaultVariant: string;
-  roleVariable: string;
-}
-
-// Affirmation Variant (for conditional mode)
-export interface AffirmationVariant {
+// Message Variant (MSG)
+export interface MessageVariant {
   headline: string;
   copy: string;
+  style?: "standard" | "toast" | "inline" | "modal" | "overlay";
 }
 
-// Affirmation Screen - displays after user actions
-// Simple mode: just headline + copy
-// Conditional mode: different messages based on a variable value (usually from prior screen)
-export interface AffirmationScreen extends BaseScreen {
-  type: "affirmation";
-  // Simple mode - used when no conditionVariable is set
+// Message Screen (MSG) - Replaces Affirmation, SocialProof
+export interface MessageScreen extends BaseScreen {
+  type: "MSG";
+  // Content (Simple)
   headline?: string;
   copy?: string;
-  // Conditional mode - variants keyed by variable value
-  conditionVariable?: string; // e.g., "barrier", "motivation"
-  variants?: Record<string, AffirmationVariant>;
-  defaultVariant?: string; // fallback variant key
-  // Display options
-  autoProceed?: boolean; // auto-advance after duration
-  duration?: number; // ms before auto-proceeding (default: 3000)
+  style?: "standard" | "toast" | "inline" | "modal" | "overlay";
+  stats?: { label: string; value: string }[]; // For social proof legacy support
+
+  // Logic
+  conditionVariable?: string;
+  variants?: Record<string, MessageVariant>;
+  defaultVariant?: string;
+
+  // Behavior
+  autoProceed?: boolean;
+  duration?: number;
 }
 
-// Confirm Location Screen
-export interface ConfirmLocationScreen extends BaseScreen {
-  type: "confirm-location";
-  question: string;
-  detectedStateVariable: string;
-  variableBinding: string;
-  confirmationMessage: string;
-}
-
-// Discovery Screen - "How did you hear about us"
-export interface DiscoveryScreen extends BaseScreen {
-  type: "discovery";
-  question: string;
-  options: QuestionOption[];
-  variableBinding: string;
-}
-
-// Account Creation Screen
-export interface AccountCreationScreen extends BaseScreen {
-  type: "account-creation";
+// Account Creation Screen (FORM)
+export interface FormScreen extends BaseScreen {
+  type: "FORM";
   headline: string;
   copy: string;
   showSocialLogin: boolean;
   socialProviders?: ("google" | "microsoft" | "clever")[];
   collectFields: ("email" | "password" | "firstName" | "lastName")[];
+  variants?: Record<string, Partial<FormScreen>>;
+  defaultVariant?: string;
 }
 
-// SSO Handoff Screen - terminal
-export interface SSOHandoffScreen extends BaseScreen {
-  type: "sso-handoff";
-  provider: string;
-  providerVariable: string;
+// Paywall Variant
+export interface PaywallVariant {
+  headline: string;
+  valuePropositions: string[];
+}
+
+// Paywall Screen (PAY)
+export interface PaywallScreen extends BaseScreen {
+  type: "PAY";
+  // Simple mode
+  headline?: string;
+  valuePropositions?: string[];
+  // Variant mode
+  roleVariable?: string;
+  variants?: Record<string, PaywallVariant>;
+  defaultVariant?: string;
+  // Actions
+  primaryAction: { label: string; action: "upgrade" };
+  secondaryAction: { label: string; action: "continue-free" };
+}
+
+// Exit/Handoff Screen (EXIT)
+export interface ExitScreen extends BaseScreen {
+  type: "EXIT";
+  provider?: string;
+  providerVariable?: string;
   headline: string;
   copy: string;
   actionLabel: string;
   isTerminal: true;
 }
 
-// Paywall Screen
-export interface PaywallScreen extends BaseScreen {
-  type: "paywall";
-  headline: string;
-  valuePropositions: string[];
-  primaryAction: { label: string; action: "upgrade" };
-  secondaryAction: { label: string; action: "continue-free" };
-}
-
 // Union type of all screens
 export type Screen =
-  | GatekeeperScreen
-  | QuestionScreen
+  | MultipleChoiceScreen
   | MultiSelectScreen
   | InputScreen
   | TypingTestScreen
-  | BranchScreen
+  | LogicScreen
   | InterstitialScreen
-  | SocialProofScreen
-  | AffirmationScreen
-  | ConfirmLocationScreen
-  | DiscoveryScreen
-  | AccountCreationScreen
-  | SSOHandoffScreen
+  | MessageScreen
+  | FormScreen
+  | ExitScreen
   | PaywallScreen;
 
 // React Flow Node Data
@@ -313,19 +304,19 @@ export interface FlowEdgeData extends Record<string, unknown> {
   label?: string;
 }
 
-// Component Template for the library
+// Component Template
 export type ComponentCategory =
   | "entry"
   | "question"
   | "input"
-  | "feedback"
   | "routing"
   | "terminal"
-  | "utility";
+  | "message";
 
 export interface ComponentTemplate {
   id: string;
   name: string;
+  code: ComponentCode;
   description: string;
   category: ComponentCategory;
   icon: string;
@@ -336,70 +327,54 @@ export interface ComponentTemplate {
 }
 
 // Helper type guards
-export function isGatekeeperScreen(screen: Screen): screen is GatekeeperScreen {
-  return screen.type === "gatekeeper";
-}
-
-export function isQuestionScreen(screen: Screen): screen is QuestionScreen {
-  return screen.type === "question";
+export function isMultipleChoiceScreen(screen: Screen): screen is MultipleChoiceScreen {
+  return screen.type === "MC";
 }
 
 export function isMultiSelectScreen(screen: Screen): screen is MultiSelectScreen {
-  return screen.type === "multi-select";
+  return screen.type === "MS";
 }
 
 export function isInputScreen(screen: Screen): screen is InputScreen {
-  return screen.type === "input";
+  return screen.type === "TXT" || screen.type === "NUM";
 }
 
 export function isTypingTestScreen(screen: Screen): screen is TypingTestScreen {
-  return screen.type === "typing-test";
+  return screen.type === "TEST";
 }
 
-export function isBranchScreen(screen: Screen): screen is BranchScreen {
-  return screen.type === "branch";
+export function isLogicScreen(screen: Screen): screen is LogicScreen {
+  return screen.type === "LOGIC";
 }
 
 export function isInterstitialScreen(screen: Screen): screen is InterstitialScreen {
-  return screen.type === "interstitial";
+  return screen.type === "INT";
 }
 
-export function isSocialProofScreen(screen: Screen): screen is SocialProofScreen {
-  return screen.type === "social-proof";
+export function isMessageScreen(screen: Screen): screen is MessageScreen {
+  return screen.type === "MSG";
 }
 
-export function isAffirmationScreen(screen: Screen): screen is AffirmationScreen {
-  return screen.type === "affirmation";
+export function isFormScreen(screen: Screen): screen is FormScreen {
+  return screen.type === "FORM";
 }
 
-export function isConfirmLocationScreen(screen: Screen): screen is ConfirmLocationScreen {
-  return screen.type === "confirm-location";
-}
-
-export function isDiscoveryScreen(screen: Screen): screen is DiscoveryScreen {
-  return screen.type === "discovery";
-}
-
-export function isAccountCreationScreen(screen: Screen): screen is AccountCreationScreen {
-  return screen.type === "account-creation";
-}
-
-export function isSSOHandoffScreen(screen: Screen): screen is SSOHandoffScreen {
-  return screen.type === "sso-handoff";
+export function isExitScreen(screen: Screen): screen is ExitScreen {
+  return screen.type === "EXIT";
 }
 
 export function isPaywallScreen(screen: Screen): screen is PaywallScreen {
-  return screen.type === "paywall";
+  return screen.type === "PAY";
 }
 
 // Utility to check if screen has options
 export function hasOptions(
   screen: Screen
-): screen is GatekeeperScreen | QuestionScreen | MultiSelectScreen | DiscoveryScreen {
-  return ["gatekeeper", "question", "multi-select", "discovery"].includes(screen.type);
+): screen is MultipleChoiceScreen | MultiSelectScreen {
+  return ["MC", "MS"].includes(screen.type);
 }
 
 // Utility to check if screen is terminal (ends flow)
 export function isTerminalScreen(screen: Screen): boolean {
-  return screen.type === "sso-handoff" || screen.type === "paywall";
+  return screen.type === "EXIT" || screen.type === "PAY";
 }
