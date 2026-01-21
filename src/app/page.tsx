@@ -1,11 +1,26 @@
+
 import Link from "next/link";
+import { ArrowRight, Plus, Rocket, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { DashboardFlowList } from "@/components/dashboard/DashboardFlowList";
-import { DevAuthDetails } from "@/components/dev/DevAuthDetails";
 
 export default function Home() {
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gray-50/50">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-xl text-primary">
+            <Rocket className="h-6 w-6" />
+            <span>FlowBuilder</span>
+          </div>
+          <nav className="flex items-center gap-4">
+            <UserMenu />
+          </nav>
+        </div>
+      </header>
+      <div className="max-w-4xl mx-auto p-8">
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Signup Flow Builder</h1>
@@ -13,7 +28,6 @@ export default function Home() {
               Visual editor for Typing.com signup flows
             </p>
           </div>
-          <DevAuthDetails />
         </div>
 
         {/* Dynamic Saved Flows Section */}

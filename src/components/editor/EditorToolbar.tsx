@@ -17,9 +17,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { useEditorStore } from "@/store/editorStore";
 import { LoadFlowModal } from "@/components/editor/LoadFlowModal";
-import { DevAuthDetails } from "@/components/dev/DevAuthDetails";
 import { flowService } from "@/services/flowService";
 
 interface EditorToolbarProps {
@@ -197,7 +197,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
         </div>
 
         {/* Dev Auth Details */}
-        <DevAuthDetails />
+        <UserMenu />
 
         <Separator orientation="vertical" className="h-6 mx-2" />
 
