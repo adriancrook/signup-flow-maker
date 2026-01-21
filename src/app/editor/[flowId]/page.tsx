@@ -6,6 +6,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useEditorStore } from "@/store/editorStore";
 import { FlowCanvas } from "@/components/editor/FlowCanvas";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
+import { flowService } from "@/services/flowService";
 import { ComponentLibrary } from "@/components/panels/ComponentLibrary";
 import { PropertiesPanel } from "@/components/panels/PropertiesPanel";
 import { FlowPreview } from "@/components/preview/FlowPreview";
@@ -44,6 +45,7 @@ export default function EditorPage() {
       setIsLoading(true);
       setLoadError(null);
 
+      // 1. New Flow
       if (flowId === "new") {
         createNewFlow("New Flow", "individual");
         setIsLoading(false);
@@ -51,14 +53,31 @@ export default function EditorPage() {
       }
 
       try {
-        // PRIORITY 1: Check if a Blueprint exists for this ID
+        // 2. Check Database (UUID)
+        // Only try fetching if it looks like a UUID to avoid 400 errors for slugs
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(flowId);
+
+        if (isUuid) {
+          const dbFlow = await flowService.fetchFlow(flowId);
+          if (dbFlow) {
+            // Determine if we need to auto-layout (legacy flows might lack positions)
+            // For now, assume DB flows are saved with positions.
+            // We use setFlow from store (which we need to expose or use loadFlowJson)
+            // loadFlowJson expects a JSON string
+            loadFlowJson(JSON.stringify(dbFlow));
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // 3. Fallback: Blueprints (Static Slugs)
         if (blueprints[flowId]) {
           loadFromBlueprint(flowId);
           setIsLoading(false);
           return;
         }
 
-        // PRIORITY 2: Legacy JSON loading (Fallback)
+        // 4. Fallback: Legacy JSON Files (e.g. "individual-student.json")
         // Dynamically import the JSON file
         const flowModule = await import(`@/data/flows/${flowId}.json`);
         const flowData = flowModule.default;
@@ -95,7 +114,12 @@ export default function EditorPage() {
         if (meta) {
           createNewFlow(meta.name, meta.category);
         } else {
-          createNewFlow("Untitled Flow", "individual");
+          // If it looked like a UUID but failed, show error
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(flowId)) {
+            setLoadError("Could not load flow. It may have been deleted or you don't have permission.");
+          } else {
+            createNewFlow("Untitled Flow", "individual");
+          }
         }
       }
 

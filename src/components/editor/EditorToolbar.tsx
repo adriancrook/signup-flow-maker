@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   Save,
   Undo2,
@@ -12,16 +12,24 @@ import {
   PanelRightClose,
   PanelLeft,
   PanelRight,
+  FolderOpen,
+  ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useEditorStore } from "@/store/editorStore";
+import { LoadFlowModal } from "@/components/editor/LoadFlowModal";
+import { DevAuthDetails } from "@/components/dev/DevAuthDetails";
+import { flowService } from "@/services/flowService";
 
 interface EditorToolbarProps {
   flowName?: string;
 }
 
 export function EditorToolbar({ flowName }: EditorToolbarProps) {
+  const [loadModalOpen, setLoadModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const {
     currentFlow,
     isDirty,
@@ -34,6 +42,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
     getFlowJson,
     loadFlowJson,
     markClean,
+    setFlow, // Add setFlow
   } = useEditorStore();
 
   // Access temporal store for undo/redo via the store's temporal property
@@ -52,24 +61,45 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
     temporalStore.getState().redo();
   }, [temporalStore]);
 
-  const handleSave = useCallback(() => {
-    const json = getFlowJson();
-    if (!json) return;
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      // Need to get the full flow object with latest state
+      const flowJson = getFlowJson();
+      if (!flowJson) return;
 
-    // For now, just log to console and download
-    // In production, this would save to the server or filesystem
-    console.log("Saving flow:", json);
-    markClean();
+      const flow = JSON.parse(flowJson);
 
-    // Auto-download as JSON file
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${currentFlow?.id || "flow"}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [getFlowJson, markClean, currentFlow?.id]);
+      // UUID Regex Check
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(flow.id);
+
+      if (isUuid) {
+        // Existing Database Flow -> Update
+        await flowService.saveFlow(flow);
+        console.log("Flow saved to database successfully.");
+      } else {
+        // New/Template Flow -> Create New
+        const newId = await flowService.createFlow(flow);
+
+        // Update local state with the new ID so future saves are updates
+        // This also ensures the URL could technically be updated, but for now we just keep working
+        const updatedFlow = { ...flow, id: newId };
+        setFlow(updatedFlow);
+
+        console.log("New flow created and saved to database:", newId);
+
+        // Optional: Update URL without reload (if we want deep linking to persist)
+        window.history.replaceState(null, "", `/editor/${newId}`);
+      }
+
+      markClean();
+    } catch (error) {
+      console.error("Failed to save flow:", error);
+      alert("Failed to save flow to database.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [getFlowJson, markClean, setFlow]);
 
   const handleExport = useCallback(() => {
     const json = getFlowJson();
@@ -105,117 +135,168 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
   }, [loadFlowJson]);
 
   return (
-    <div className="h-12 border-b bg-white flex items-center px-4 gap-2">
-      {/* Left panel toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={toggleLeftPanel}
-        title={leftPanelOpen ? "Hide component library" : "Show component library"}
-      >
-        {leftPanelOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
-      </Button>
-
-      <Separator orientation="vertical" className="h-6" />
-
-      {/* Flow name */}
-      <div className="flex items-center gap-2 flex-1">
-        <h1 className="font-medium text-sm">
-          {flowName || currentFlow?.name || "Untitled Flow"}
-        </h1>
-        {isDirty && (
-          <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-            Unsaved
-          </span>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1">
-        {/* Undo/Redo */}
+    <>
+      <div className="h-12 border-b bg-white flex items-center px-4 gap-2">
+        {/* Left panel toggle */}
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={handleUndo}
-          disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
+          asChild
+          title="Back to Dashboard"
         >
-          <Undo2 size={16} />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={handleRedo}
-          disabled={!canRedo}
-          title="Redo (Ctrl+Y)"
-        >
-          <Redo2 size={16} />
+          <a href="/">
+            <ChevronLeft size={16} />
+          </a>
         </Button>
 
         <Separator orientation="vertical" className="h-6 mx-2" />
 
-        {/* Save */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={toggleLeftPanel}
+          title={leftPanelOpen ? "Hide component library" : "Show component library"}
+        >
+          {leftPanelOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+        </Button>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Load Flow */}
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1.5"
-          onClick={handleSave}
+          className="h-8 gap-1.5 text-slate-600"
+          onClick={() => setLoadModalOpen(true)}
         >
-          <Save size={14} />
-          <span className="text-sm">Save</span>
+          <FolderOpen size={14} />
+          <span className="text-sm">Load</span>
         </Button>
 
-        {/* Export */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={handleExport}
-          title="Export JSON"
-        >
-          <Download size={16} />
-        </Button>
+        <Separator orientation="vertical" className="h-6" />
 
-        {/* Import */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={handleImport}
-          title="Import JSON"
-        >
-          <Upload size={16} />
-        </Button>
+        {/* Flow name */}
+        <div className="flex items-center gap-2 flex-1">
+          <h1 className="font-medium text-sm truncate max-w-[200px]">
+            {flowName || currentFlow?.name || "Untitled Flow"}
+          </h1>
+          {isDirty && (
+            <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+              Unsaved
+            </span>
+          )}
+
+          {/* Version Badge (if persisted) */}
+          {currentFlow?.version && (
+            <span className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+              v{currentFlow.version}
+            </span>
+          )}
+        </div>
+
+        {/* Dev Auth Details */}
+        <DevAuthDetails />
 
         <Separator orientation="vertical" className="h-6 mx-2" />
 
-        {/* Preview */}
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          {/* Undo/Redo */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleUndo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleRedo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo2 size={16} />
+          </Button>
+
+          <Separator orientation="vertical" className="h-6 mx-2" />
+
+          {/* Save */}
+          <Button
+            variant="default" // Emphasize save
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+            ) : (
+              <Save size={14} />
+            )}
+            <span className="text-sm">{isSaving ? "Saving..." : "Save"}</span>
+          </Button>
+
+          {/* Export */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleExport}
+            title="Export JSON file"
+          >
+            <Download size={16} />
+          </Button>
+
+          {/* Import */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleImport}
+            title="Import JSON file"
+          >
+            <Upload size={16} />
+          </Button>
+
+          <Separator orientation="vertical" className="h-6 mx-2" />
+
+          {/* Preview */}
+          <Button
+            variant={previewMode ? "secondary" : "outline"} // Distinct from primary save
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={togglePreviewMode}
+          >
+            <Play size={14} />
+            <span className="text-sm">Preview</span>
+          </Button>
+        </div>
+
+        <Separator orientation="vertical" className="h-6" />
+
+        {/* Right panel toggle */}
         <Button
-          variant={previewMode ? "default" : "outline"}
-          size="sm"
-          className="h-8 gap-1.5"
-          onClick={togglePreviewMode}
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={toggleRightPanel}
+          title={rightPanelOpen ? "Hide properties" : "Show properties"}
         >
-          <Play size={14} />
-          <span className="text-sm">Preview</span>
+          {rightPanelOpen ? <PanelRightClose size={16} /> : <PanelRight size={16} />}
         </Button>
       </div>
 
-      <Separator orientation="vertical" className="h-6" />
-
-      {/* Right panel toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8"
-        onClick={toggleRightPanel}
-        title={rightPanelOpen ? "Hide properties" : "Show properties"}
-      >
-        {rightPanelOpen ? <PanelRightClose size={16} /> : <PanelRight size={16} />}
-      </Button>
-    </div>
+      <LoadFlowModal
+        open={loadModalOpen}
+        onOpenChange={setLoadModalOpen}
+      />
+    </>
   );
 }

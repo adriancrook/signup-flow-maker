@@ -93,7 +93,16 @@ export const hydrateFlow = (blueprint: ComponentCode[]): HydratedFlow => {
                     // Find the target node AFTER the current node to prefer forward progress
                     // But technically we search all nodes.
                     // Let's use simple find for now.
-                    const targetNode = nodes.find(n => n.data.code === targetCode);
+                    let targetNode = nodes.find(n => n.data.code === targetCode);
+
+                    if (!targetNode) {
+                        // Try stripping variant suffix (e.g. MC-DISCOVERY-EDU -> MC-DISCOVERY)
+                        const parts = targetCode.split('-');
+                        if (parts.length > 2) {
+                            const baseCode = parts.slice(0, parts.length - 1).join('-');
+                            targetNode = nodes.find(n => n.data.code === baseCode);
+                        }
+                    }
 
                     if (targetNode) {
                         // Check for existing default edge between these nodes

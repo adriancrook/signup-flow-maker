@@ -116,21 +116,38 @@ function screensToNodes(screens: Screen[]): FlowNode[] {
 // Convert nodes back to screens, using edges to reconstruct flow paths
 function nodesToScreens(nodes: FlowNode[], edges: FlowEdge[]): Screen[] {
   return nodes.map((node) => {
+    // Start with the screen data from the node
     const screen = { ...node.data.screen, position: node.position };
 
-    // Find default next screen (simple edge)
-    const defaultEdge = edges.find(
-      (e) => e.source === node.id && e.data?.isDefault
-    );
-    if (defaultEdge) {
-      screen.nextScreenId = defaultEdge.target;
-    } else {
-      screen.nextScreenId = undefined;
+    // 1. Reset all connections first to ensure we strictly follow the visual graph
+    screen.nextScreenId = undefined;
+    if ("options" in screen && Array.isArray(screen.options)) {
+      screen.options = screen.options.map((opt: any) => ({
+        ...opt,
+        nextScreenId: undefined,
+      }));
     }
 
-    // Reconstruct branching logic from edges would go here if needed
-    // But typically we store that in screen data too. 
-    // For now, nextScreenId is the critical one missing from pure node data.
+    // 2. Find all outgoing edges from this node
+    const outgoingEdges = edges.filter((e) => e.source === node.id);
+
+    outgoingEdges.forEach((edge) => {
+      // Case A: Option-specific edge (has a sourceHandle that isn't null/undefined)
+      if (edge.sourceHandle && "options" in screen && Array.isArray(screen.options)) {
+        const optionIndex = screen.options.findIndex((o: any) => o.id === edge.sourceHandle);
+        if (optionIndex !== -1) {
+          screen.options[optionIndex] = {
+            ...screen.options[optionIndex],
+            nextScreenId: edge.target,
+          };
+        }
+      }
+      // Case B: Default edge (no sourceHandle or explicit isDefault flag)
+      // Note: We prioritize explicit handles. If no handle, it's the default "next" path.
+      else if (!edge.sourceHandle || edge.data?.isDefault) {
+        screen.nextScreenId = edge.target;
+      }
+    });
 
     return screen;
   });
@@ -532,25 +549,61 @@ export const useEditorStore = create<EditorState>()(
       onConnect: (connection: Connection) => {
         if (!connection.source || !connection.target) return;
 
-        const edgeId = `${connection.source}->${connection.target}`;
+        const state = get();
+        const sourceNode = state.nodes.find((n) => n.id === connection.source);
+        if (!sourceNode) return;
+
+        const screen = sourceNode.data.screen;
+        let isOptionConnection = false;
+        let optionLabel = undefined;
+
+        // Check if connecting from an option
+        if (connection.sourceHandle && "options" in screen && Array.isArray(screen.options)) {
+          const option = screen.options.find((o: any) => o.id === connection.sourceHandle);
+          if (option) {
+            isOptionConnection = true;
+            optionLabel = option.label;
+          }
+        }
+
+        const edgeId = `${connection.source}->${connection.target}${isOptionConnection ? `-option-${connection.sourceHandle}` : ''}`;
+
         const newEdge: FlowEdge = {
           id: edgeId,
           source: connection.source,
           target: connection.target,
           sourceHandle: connection.sourceHandle ?? undefined,
           targetHandle: connection.targetHandle ?? undefined,
-          data: { isDefault: true },
+          data: {
+            isDefault: !isOptionConnection,
+            label: optionLabel
+          },
+          label: optionLabel,
+          style: isOptionConnection ? { strokeDasharray: "5,5" } : undefined
         };
 
         set((state) => {
+          // Remove existing default edge if replacing it, or specific option edge
+          // React Flow might handle this visually, but we want clean data
           state.edges = addEdge(newEdge, state.edges) as FlowEdge[];
-          // Update source screen
+
+          // Update source screen data structure immediately
           if (state.currentFlow) {
-            const screen = state.currentFlow.screens.find(
+            const currentScreen = state.currentFlow.screens.find(
               (s) => s.id === connection.source
             );
-            if (screen) {
-              screen.nextScreenId = connection.target!;
+
+            if (currentScreen) {
+              if (isOptionConnection && connection.sourceHandle && "options" in currentScreen && Array.isArray(currentScreen.options)) {
+                // Update specific option
+                const optIndex = currentScreen.options.findIndex((o: any) => o.id === connection.sourceHandle);
+                if (optIndex !== -1) {
+                  currentScreen.options[optIndex].nextScreenId = connection.target!;
+                }
+              } else {
+                // Update default next
+                currentScreen.nextScreenId = connection.target!;
+              }
             }
           }
           state.isDirty = true;

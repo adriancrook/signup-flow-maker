@@ -139,7 +139,7 @@ export const blueprints: Record<string, ComponentCode[]> = {
         "MC-GATEKEEPER-EDU",
         "MSG-SOCIAL-PROOF-DST",
         "MC-LOCATION-EDU",
-        "MC-DISTRICTSCOPE-DST",
+        "NUM-SCHOOLS-DST",
         "MSG-DISTRICTSCOPE-DST-AFF",
         "MC-ROSTERING-DST",
         "MSG-ROSTERING-DST-AFF",
