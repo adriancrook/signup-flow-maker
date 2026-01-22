@@ -15,6 +15,7 @@ export type Database = {
                     created_at: string | null
                     flow_id: string
                     id: string
+                    metadata: Json | null
                     node_id: string
                     organization_id: string
                     parent_id: string | null
@@ -28,6 +29,7 @@ export type Database = {
                     created_at?: string | null
                     flow_id: string
                     id?: string
+                    metadata?: Json | null
                     node_id: string
                     organization_id: string
                     parent_id?: string | null
@@ -41,6 +43,7 @@ export type Database = {
                     created_at?: string | null
                     flow_id?: string
                     id?: string
+                    metadata?: Json | null
                     node_id?: string
                     organization_id?: string
                     parent_id?: string | null

@@ -21,14 +21,14 @@ import { UserMenu } from "@/components/layout/UserMenu";
 import { useEditorStore } from "@/store/editorStore";
 import { LoadFlowModal } from "@/components/editor/LoadFlowModal";
 import { flowService } from "@/services/flowService";
+import { useFlowSave } from "@/hooks/useFlowSave";
 
 interface EditorToolbarProps {
   flowName?: string;
 }
 
 export function EditorToolbar({ flowName }: EditorToolbarProps) {
-  const [loadModalOpen, setLoadModalOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const { saveFlow, isSaving } = useFlowSave();
 
   const {
     currentFlow,
@@ -42,7 +42,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
     getFlowJson,
     loadFlowJson,
     markClean,
-    setFlow, // Add setFlow
+    setFlow,
   } = useEditorStore();
 
   // Access temporal store for undo/redo via the store's temporal property
@@ -53,53 +53,14 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
   const canUndo = pastStates.length > 0;
   const canRedo = futureStates.length > 0;
 
-  const handleUndo = useCallback(() => {
-    temporalStore.getState().undo();
-  }, [temporalStore]);
-
-  const handleRedo = useCallback(() => {
-    temporalStore.getState().redo();
-  }, [temporalStore]);
+  const [loadModalOpen, setLoadModalOpen] = useState(false);
 
   const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      // Need to get the full flow object with latest state
-      const flowJson = getFlowJson();
-      if (!flowJson) return;
-
-      const flow = JSON.parse(flowJson);
-
-      // UUID Regex Check
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(flow.id);
-
-      if (isUuid) {
-        // Existing Database Flow -> Update
-        await flowService.saveFlow(flow);
-        console.log("Flow saved to database successfully.");
-      } else {
-        // New/Template Flow -> Create New
-        const newId = await flowService.createFlow(flow);
-
-        // Update local state with the new ID so future saves are updates
-        // This also ensures the URL could technically be updated, but for now we just keep working
-        const updatedFlow = { ...flow, id: newId };
-        setFlow(updatedFlow);
-
-        console.log("New flow created and saved to database:", newId);
-
-        // Optional: Update URL without reload (if we want deep linking to persist)
-        window.history.replaceState(null, "", `/editor/${newId}`);
-      }
-
-      markClean();
-    } catch (error) {
-      console.error("Failed to save flow:", error);
+    const success = await saveFlow();
+    if (!success) {
       alert("Failed to save flow to database.");
-    } finally {
-      setIsSaving(false);
     }
-  }, [getFlowJson, markClean, setFlow]);
+  }, [saveFlow]);
 
   const handleExport = useCallback(() => {
     const json = getFlowJson();
@@ -133,6 +94,14 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
     };
     input.click();
   }, [loadFlowJson]);
+
+  const handleUndo = useCallback(() => {
+    temporalStore.getState().undo();
+  }, [temporalStore]);
+
+  const handleRedo = useCallback(() => {
+    temporalStore.getState().redo();
+  }, [temporalStore]);
 
   return (
     <>

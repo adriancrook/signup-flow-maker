@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useEditorStore } from "@/store/editorStore";
+import { useFlowSave } from "@/hooks/useFlowSave";
+import { useComments } from "@/hooks/useComments";
 
 const StickyNoteNode = ({ id, selected, data }: NodeProps) => {
     const updateNode = useEditorStore((state) => state.updateNode);
@@ -37,10 +39,24 @@ const StickyNoteNode = ({ id, selected, data }: NodeProps) => {
         fetchAuthor();
     }, [authorId]);
 
+    const { editComment } = useComments(useEditorStore(state => state.currentFlow?.id || ""));
+    const { saveFlow } = useFlowSave();
+
     const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         updateNode(id, { notes: newValue });
     }, [id, updateNode]);
+
+    const handleBlur = useCallback(() => {
+        // Persist content to DB
+        editComment(id, content);
+
+        // We don't necessarily need to saveFlow() since sticky notes are independent now,
+        // but it cleans up the "Unsaved" badge if we want to sync state. 
+        // However, since getFlowJson excludes them, saveFlow technically saves "nothing" regarding this note.
+        // Let's keep it to avoid user confusion about "Unsaved" state for now.
+        saveFlow();
+    }, [editComment, id, content, saveFlow]);
 
     return (
         <div
@@ -49,33 +65,35 @@ const StickyNoteNode = ({ id, selected, data }: NodeProps) => {
                 selected ? "border-blue-500 ring-2 ring-blue-500/20" : "border-yellow-300"
             )}
         >
-            <div className="flex items-center justify-between mb-2 shrink-0">
-                <div className="flex items-center gap-2 text-yellow-800 opacity-50">
+            <div className="flex items-center justify-between mb-2 shrink-0 gap-2">
+                <div className="flex items-center gap-2 text-yellow-800 opacity-50 shrink-0">
                     <StickyNote className="w-4 h-4" />
                     <span className="text-xs font-semibold uppercase tracking-wider">Note</span>
                 </div>
-                {author && (
-                    <div className="flex items-center gap-1.5" title={`Created by ${author.name}`}>
-                        <Avatar className="w-4 h-4 border border-yellow-400/50">
-                            <AvatarImage src={author.avatar_url} />
-                            <AvatarFallback className="text-[8px] bg-yellow-300 text-yellow-800">
-                                {author.name[0]}
-                            </AvatarFallback>
-                        </Avatar>
-                        <span className="text-[10px] text-yellow-800/60 font-medium truncate max-w-[60px]">
-                            {author.name.split(' ')[0]}
-                        </span>
-                    </div>
-                )}
             </div>
 
             <textarea
-                className="flex-1 w-full bg-transparent border-none resize-none focus:ring-0 focus:outline-none text-sm text-yellow-900 leading-relaxed placeholder:text-yellow-800/40 font-handwriting"
+                className="flex-1 w-full bg-transparent border-none resize-none focus:ring-0 focus:outline-none text-sm text-yellow-900 leading-relaxed placeholder:text-yellow-800/40 font-handwriting mb-6"
                 placeholder="Add your note here..."
                 value={content}
                 onChange={handleContentChange}
+                onBlur={handleBlur}
                 onMouseDown={(e) => e.stopPropagation()} // Allow text selection without dragging node
             />
+
+            {author && (
+                <div className="absolute bottom-3 right-3 flex items-center gap-1.5 max-w-[80%] justify-end" title={`Created by ${author.name}`}>
+                    <span className="text-[10px] text-yellow-800/60 font-medium truncate">
+                        {author.name.split(' ')[0]}
+                    </span>
+                    <Avatar className="w-4 h-4 border border-yellow-400/50 shrink-0">
+                        <AvatarImage src={author.avatar_url} />
+                        <AvatarFallback className="text-[8px] bg-yellow-300 text-yellow-800">
+                            {author.name[0]}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+            )}
         </div>
     );
 };
