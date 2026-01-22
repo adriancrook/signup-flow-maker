@@ -32,7 +32,7 @@ function BaseNodeComponent({
   return (
     <div
       className={cn(
-        "min-w-[200px] max-w-[280px] rounded-lg border-2 shadow-md transition-all",
+        "w-[280px] rounded-lg border-2 shadow-md transition-all",
         color,
         selected ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200",
         !isValid && "border-red-500"
