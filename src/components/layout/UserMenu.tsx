@@ -12,13 +12,17 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
 export function UserMenu() {
     const [email, setEmail] = useState<string | null>(null);
     const router = useRouter();
-    const { realRole, isPreviewMode, togglePreviewMode } = useUserRole();
+    const { realRole, role, isPreviewMode, setPreviewRole } = useUserRole();
 
     useEffect(() => {
         const getUser = async () => {
@@ -66,14 +70,33 @@ export function UserMenu() {
                 </DropdownMenuItem>
 
                 {realRole === 'admin' && (
-                    <DropdownMenuItem onClick={togglePreviewMode} className="cursor-pointer">
-                        <div className="flex items-center">
-                            {isPreviewMode ? <EyeOff className="mr-2 h-4 w-4 text-amber-600" /> : <Eye className="mr-2 h-4 w-4" />}
-                            <span className={isPreviewMode ? "text-amber-600 font-medium" : ""}>
-                                {isPreviewMode ? "Exit Preview" : "Preview: Viewer"}
-                            </span>
-                        </div>
-                    </DropdownMenuItem>
+                    <>
+                        {isPreviewMode ? (
+                            <DropdownMenuItem onClick={() => setPreviewRole(null)} className="cursor-pointer bg-amber-50 text-amber-900 border-l-4 border-amber-500">
+                                <div className="flex items-center w-full font-medium">
+                                    <EyeOff className="mr-2 h-4 w-4 text-amber-600" />
+                                    <span>Exit Preview ({role})</span>
+                                </div>
+                            </DropdownMenuItem>
+                        ) : (
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    <span>Preview As...</span>
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                    <DropdownMenuSubContent>
+                                        <DropdownMenuItem onClick={() => setPreviewRole('editor')}>
+                                            <span className="ml-2">Editor</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setPreviewRole('viewer')}>
+                                            <span className="ml-2">Viewer</span>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                        )}
+                    </>
                 )}
 
                 <DropdownMenuSeparator />

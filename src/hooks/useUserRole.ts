@@ -35,9 +35,9 @@ export function useUserRole() {
                 setRealRole(dbRole);
 
                 // Check for override
-                const override = localStorage.getItem('antigravity_role_override');
-                if (override === 'viewer' && dbRole === 'admin') {
-                    setRole('viewer');
+                const override = localStorage.getItem('antigravity_role_override') as UserRole | null;
+                if (dbRole === 'admin' && override && ['viewer', 'editor'].includes(override)) {
+                    setRole(override);
                     setIsPreviewMode(true);
                 } else {
                     setRole(dbRole);
@@ -67,13 +67,13 @@ export function useUserRole() {
         };
     }, [fetchRole]);
 
-    const togglePreviewMode = () => {
+    const setPreviewRole = (targetRole: UserRole | null) => {
         if (realRole !== 'admin') return;
 
-        if (isPreviewMode) {
+        if (!targetRole) {
             localStorage.removeItem('antigravity_role_override');
         } else {
-            localStorage.setItem('antigravity_role_override', 'viewer');
+            localStorage.setItem('antigravity_role_override', targetRole);
         }
 
         // Dispatch event to update other components immediately
@@ -89,7 +89,7 @@ export function useUserRole() {
         userId,
         isLoading,
         isPreviewMode, // Boolean: are we faking it?
-        togglePreviewMode,
+        setPreviewRole,
         refresh: fetchRole
     };
 }
