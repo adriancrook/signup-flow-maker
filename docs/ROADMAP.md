@@ -69,9 +69,9 @@ To build the definitive "Source of Truth" for complex user signup flows, enablin
 ## 💡 "Immediately Useful" Backlog
 *   **Cmd+Z / Redo** support for canvas actions.
 *   **Search**: Global search for nodes by text content or ID.
-*   **Advanced Commenting System**
-    *   **Node-Level Attribution**: Comments anchored to specific flow nodes.
-    *   **Sticky Notes**: Free-floating comments for general feedback on the canvas.
-    *   **Visual Attribution**: Display user names/avatars beside each comment or sticky note.
-    *   **Threaded Discussions**: Reply chains for in-context conversation.
-    *   **Status Tracking**: "Open", "Resolved", and "Wontfix" states for feedback management.
+*   **[x] Advanced Commenting System**
+    *   [x] **Node-Level Attribution**: Comments anchored to specific flow nodes.
+    *   [x] **Sticky Notes**: Free-floating comments for general feedback on the canvas.
+    *   [x] **Visual Attribution**: Display user names/avatars beside each comment or sticky note.
+    *   [x] **Threaded Discussions**: Reply chains for in-context conversation.
+    *   [x] **Status Tracking**: "Open", "Resolved", and "Wontfix" states for feedback management.
