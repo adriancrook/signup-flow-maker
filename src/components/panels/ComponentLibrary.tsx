@@ -72,9 +72,10 @@ const iconMap: Record<string, React.ElementType> = {
 
 interface ComponentLibraryProps {
   flowCategory?: FlowCategory;
+  isReadOnly?: boolean;
 }
 
-export function ComponentLibrary({ flowCategory }: ComponentLibraryProps) {
+export function ComponentLibrary({ flowCategory, isReadOnly }: ComponentLibraryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "individual" | "educator">("all");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
@@ -182,6 +183,10 @@ export function ComponentLibrary({ flowCategory }: ComponentLibraryProps) {
     event: React.DragEvent<HTMLDivElement>,
     template: ComponentTemplate
   ) => {
+    if (isReadOnly && template.id !== 'sticky-note') {
+      event.preventDefault();
+      return;
+    }
     event.dataTransfer.setData(
       "application/json",
       JSON.stringify(template.defaultScreen)
@@ -276,6 +281,7 @@ export function ComponentLibrary({ flowCategory }: ComponentLibraryProps) {
                     key={template.id}
                     template={template}
                     onDragStart={handleDragStart}
+                    isReadOnly={isReadOnly}
                   />
                 ))}
               </div>
@@ -304,9 +310,10 @@ interface ComponentCardProps {
     event: React.DragEvent<HTMLDivElement>,
     template: ComponentTemplate
   ) => void;
+  isReadOnly?: boolean;
 }
 
-function ComponentCard({ template, onDragStart }: ComponentCardProps) {
+function ComponentCard({ template, onDragStart, isReadOnly }: ComponentCardProps) {
   const Icon = iconMap[template.icon] || HelpCircle;
   const selectLibraryItem = useEditorStore((state) => state.selectLibraryItem);
   const selectedLibraryItemId = useEditorStore((state) => state.selectedLibraryItemId);
@@ -315,7 +322,7 @@ function ComponentCard({ template, onDragStart }: ComponentCardProps) {
 
   return (
     <div
-      draggable
+      draggable={!isReadOnly || isStickyNote}
       onDragStart={(e) => onDragStart(e, template)}
       onClick={() => selectLibraryItem(template.id)}
       className={cn(

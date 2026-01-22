@@ -25,9 +25,10 @@ import { useFlowSave } from "@/hooks/useFlowSave";
 
 interface EditorToolbarProps {
   flowName?: string;
+  isReadOnly?: boolean;
 }
 
-export function EditorToolbar({ flowName }: EditorToolbarProps) {
+export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
   const { saveFlow, isSaving } = useFlowSave();
 
   const {
@@ -139,6 +140,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
           size="sm"
           className="h-8 gap-1.5 text-slate-600"
           onClick={() => setLoadModalOpen(true)}
+          disabled={isReadOnly}
         >
           <FolderOpen size={14} />
           <span className="text-sm">Load</span>
@@ -178,7 +180,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
             size="icon"
             className="h-8 w-8"
             onClick={handleUndo}
-            disabled={!canUndo}
+            disabled={!canUndo || isReadOnly}
             title="Undo (Ctrl+Z)"
           >
             <Undo2 size={16} />
@@ -188,7 +190,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
             size="icon"
             className="h-8 w-8"
             onClick={handleRedo}
-            disabled={!canRedo}
+            disabled={!canRedo || isReadOnly}
             title="Redo (Ctrl+Y)"
           >
             <Redo2 size={16} />
@@ -202,7 +204,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
             size="sm"
             className="h-8 gap-1.5"
             onClick={handleSave}
-            disabled={isSaving || !isDirty}
+            disabled={isSaving || !isDirty || isReadOnly}
           >
             {isSaving ? (
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
@@ -230,6 +232,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
             className="h-8 w-8"
             onClick={handleImport}
             title="Import JSON file"
+            disabled={isReadOnly}
           >
             <Upload size={16} />
           </Button>
@@ -246,7 +249,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
             <Play size={14} />
             <span className="text-sm">Preview</span>
           </Button>
-        </div>
+        </div >
 
         <Separator orientation="vertical" className="h-6" />
 
@@ -260,7 +263,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
         >
           {rightPanelOpen ? <PanelRightClose size={16} /> : <PanelRight size={16} />}
         </Button>
-      </div>
+      </div >
 
       <LoadFlowModal
         open={loadModalOpen}

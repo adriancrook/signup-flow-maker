@@ -15,7 +15,7 @@ To build the definitive "Source of Truth" for complex user signup flows, enablin
 *   **[ ] Authentication System**
     *   [x] Google OAuth / Email Login via Supabase Auth.
     *   [x] Concept of "Organizations" or "Teams" (Shared Workspaces).
-    *   Role-Based Access (Viewer vs. Editor vs. Admin).
+    *   [x] Role-Based Access (Viewer vs. Editor vs. Admin).
 *   **[x] Environment Hygiene**
     *   [x] Separate **Staging** and **Production** databases.
 

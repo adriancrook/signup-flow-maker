@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Eye, EyeOff } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 export function UserMenu() {
     const [email, setEmail] = useState<string | null>(null);
     const router = useRouter();
+    const { realRole, isPreviewMode, togglePreviewMode } = useUserRole();
 
     useEffect(() => {
         const getUser = async () => {
@@ -56,6 +58,24 @@ export function UserMenu() {
                         </p>
                     </div>
                 </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => router.push('/team')} className="cursor-pointer">
+                    <div className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Team Settings</span>
+                    </div>
+                </DropdownMenuItem>
+
+                {realRole === 'admin' && (
+                    <DropdownMenuItem onClick={togglePreviewMode} className="cursor-pointer">
+                        <div className="flex items-center">
+                            {isPreviewMode ? <EyeOff className="mr-2 h-4 w-4 text-amber-600" /> : <Eye className="mr-2 h-4 w-4" />}
+                            <span className={isPreviewMode ? "text-amber-600 font-medium" : ""}>
+                                {isPreviewMode ? "Exit Preview" : "Preview: Viewer"}
+                            </span>
+                        </div>
+                    </DropdownMenuItem>
+                )}
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />

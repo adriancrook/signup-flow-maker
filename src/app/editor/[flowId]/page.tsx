@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useEditorStore } from "@/store/editorStore";
 import { FlowCanvas } from "@/components/editor/FlowCanvas";
@@ -28,6 +30,7 @@ export default function EditorPage() {
   const flowId = params.flowId as string;
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { role: userRole } = useUserRole();
 
   const {
     currentFlow,
@@ -129,6 +132,8 @@ export default function EditorPage() {
     loadFlow();
   }, [flowId, createNewFlow, loadFlowJson, loadFromBlueprint]);
 
+  // Removed manual fetch role logic in favor of hook
+
   const meta = flowMeta[flowId];
 
   if (isLoading) {
@@ -158,25 +163,25 @@ export default function EditorPage() {
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col bg-gray-100">
-        <EditorToolbar flowName={currentFlow?.name || meta?.name} />
+        <EditorToolbar flowName={currentFlow?.name || meta?.name} isReadOnly={userRole === 'viewer'} />
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel - Component Library */}
           {leftPanelOpen && (
             <div className="w-72 flex-shrink-0">
-              <ComponentLibrary flowCategory={currentFlow?.category} />
+              <ComponentLibrary flowCategory={currentFlow?.category} isReadOnly={userRole === 'viewer'} />
             </div>
           )}
 
           {/* Canvas */}
           <div className="flex-1 relative">
-            <FlowCanvas />
+            <FlowCanvas isReadOnly={userRole === 'viewer'} />
           </div>
 
           {/* Right Panel - Properties */}
           {rightPanelOpen && (
             <div className="w-80 flex-shrink-0">
-              <PropertiesPanel />
+              <PropertiesPanel isReadOnly={userRole === 'viewer'} />
             </div>
           )}
         </div>

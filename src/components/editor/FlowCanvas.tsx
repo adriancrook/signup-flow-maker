@@ -24,9 +24,10 @@ import { useFlowSave } from "@/hooks/useFlowSave";
 
 interface FlowCanvasProps {
   onNodeClick?: (nodeId: string) => void;
+  isReadOnly?: boolean;
 }
 
-export function FlowCanvas({ onNodeClick }: FlowCanvasProps) {
+export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
   const reactFlowInstance = useRef<ReactFlowInstance<FlowNode, FlowEdge> | null>(null);
 
   const {
@@ -247,6 +248,12 @@ export function FlowCanvas({ onNodeClick }: FlowCanvasProps) {
 
       try {
         const screen = JSON.parse(screenData) as Partial<Screen>;
+
+        // Enforce Read-Only: Only allow Sticky Notes
+        if (isReadOnly && screen.type !== "STICKY-NOTE") {
+          return;
+        }
+
         const position = reactFlowInstance.current.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
@@ -308,18 +315,23 @@ export function FlowCanvas({ onNodeClick }: FlowCanvasProps) {
     }}>
       <div className="w-full h-full relative">
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          nodes={nodes.map((n) => ({
+            ...n,
+            draggable: !isReadOnly || n.type === "STICKY-NOTE",
+            connectable: !isReadOnly,
+            deletable: !isReadOnly || n.type === "STICKY-NOTE",
+          }))}
+          edges={edges.map(e => ({ ...e, deletable: !isReadOnly }))}
+          onNodesChange={onNodesChange} // Enable for all; draggable/deletable props control specific node behavior
+          onEdgesChange={!isReadOnly ? onEdgesChange : undefined}
+          onConnect={!isReadOnly ? onConnect : undefined}
           onNodeClick={handleNodeClick}
           onEdgeClick={handleEdgeClick}
           onPaneClick={handlePaneClick}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onNodeDragStop={handleDragStop}
-          onNodesDelete={onNodesDelete}
+          onDrop={handleDrop} // Logic inside handleDrop handles isReadOnly check
+          onDragOver={!isReadOnly || true ? handleDragOver : undefined} // Allow dragover for sticky notes too. Actually handleDragOver just sets dropEffect.
+          onNodeDragStop={handleDragStop} // Keep enabled to save position
+          onNodesDelete={onNodesDelete} // Keep enabled to allow deletion of allowed nodes (sticky notes)
           onInit={(instance) => {
             reactFlowInstance.current = instance;
           }}

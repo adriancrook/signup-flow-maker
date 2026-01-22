@@ -36,7 +36,11 @@ import { nanoid } from "nanoid";
 import { componentTemplates } from "@/data/componentRegistry";
 import { getComponentAvailability } from "@/lib/componentUtils";
 
-export function PropertiesPanel() {
+interface PropertiesPanelProps {
+  isReadOnly?: boolean;
+}
+
+export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
   const selectedNode = useEditorStore(selectSelectedNode);
   const selectedScreen = useEditorStore(selectSelectedScreen);
   const currentFlow = useEditorStore(selectCurrentFlow);
@@ -160,7 +164,7 @@ export function PropertiesPanel() {
 
   }
 
-  const isLocked = selectedScreen.isLocked !== false;
+  const isLocked = (selectedScreen.isLocked !== false) || isReadOnly;
   const isEntryPoint = currentFlow?.entryScreenId === selectedScreen.id;
 
   const handleUpdate = (updates: Partial<Screen>) => {
@@ -246,7 +250,7 @@ export function PropertiesPanel() {
             onChange={(e) => handleUpdate({ title: e.target.value })}
             className="font-medium h-8"
             placeholder="Screen Title"
-            disabled={isLocked}
+            disabled={isLocked || isReadOnly}
           />
         </div>
       </div>

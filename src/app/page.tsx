@@ -1,11 +1,15 @@
 
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Plus, Rocket, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { DashboardFlowList } from "@/components/dashboard/DashboardFlowList";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function Home() {
+  const { role } = useUserRole();
   return (
     <main className="min-h-screen bg-gray-50/50">
       {/* Header */}
@@ -135,12 +139,18 @@ export default function Home() {
         </div>
 
         <div className="mt-8 pt-8 border-t">
-          <Link
-            href="/editor/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <span>+ Create New Flow</span>
-          </Link>
+          {role !== 'viewer' ? (
+            <Link
+              href="/editor/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <span>+ Create New Flow</span>
+            </Link>
+          ) : (
+            <div className="text-sm text-gray-500 italic bg-gray-100 px-4 py-2 rounded-lg inline-block">
+              View Only Access - Ask an admin to promote you to Editor to create flows.
+            </div>
+          )}
         </div>
       </div>
     </main>
