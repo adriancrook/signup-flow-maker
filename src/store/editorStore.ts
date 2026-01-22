@@ -584,7 +584,8 @@ export const useEditorStore = create<EditorState>()(
                 // Let's leave it for now, dragging is the main annoyance.
               } else {
                 // Ensure we don't flag sticky notes
-                const node = state.nodes.find(n => n.id === change.id);
+                const changeId = 'id' in change ? change.id : null;
+                const node = changeId ? state.nodes.find(n => n.id === changeId) : null;
                 if (node && node.type !== 'STICKY-NOTE') {
                   hasMeaningfulChanges = true;
                 }
