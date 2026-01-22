@@ -71,6 +71,7 @@ export default function LoginPage() {
                         redirectTo={`${typeof window !== "undefined" ? window.location.origin : ""}/`}
                         magicLink={true}
                         showLinks={false}
+                        onlyThirdPartyProviders={true}
                     />
                 </div>
             </div>
