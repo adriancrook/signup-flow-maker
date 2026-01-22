@@ -65,6 +65,7 @@ interface EditorState {
   // Node actions
   addNode: (screenPartial: Partial<Screen>, position: { x: number; y: number }, customId?: string) => string;
   updateNode: (nodeId: string, screenUpdates: Partial<Screen>) => void;
+  updateSharedNode: (nodeId: string, screenUpdates: Partial<Screen>, componentCode: string) => Promise<void>;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;
 
@@ -102,6 +103,14 @@ interface EditorState {
   getFlowJson: () => string;
   loadFlowJson: (json: string) => boolean;
   markClean: () => void;
+
+  // Signals
+  libraryVersion: number;
+  refreshLibrary: () => void;
+
+  // Library Data
+  librarySnapshots: any[];
+  setLibrarySnapshots: (snapshots: any[]) => void;
 }
 
 // Convert screens to React Flow nodes
@@ -255,7 +264,21 @@ export const useEditorStore = create<EditorState>()(
           mergeArrays: false
         });
 
-        // 0. AUTO-MIGRATION: Backfill missing componentCode for known shared types
+        // --------------------------------------------------------
+        // 0. AUTO-MIGRATION: Link "Orphan" Nodes to Library Masters
+        // --------------------------------------------------------
+        // We import dynamically to avoid circular dependencies
+        try {
+          const { LinkMigrationService } = await import("@/services/LinkMigrationService");
+          const migrationResult = LinkMigrationService.migrateFlow(flow);
+          if (migrationResult.hasChanges) {
+            console.log(`[Auto-Migration] Linked ${migrationResult.migratedNodes} nodes to Library Masters.`);
+          }
+        } catch (err) {
+          console.error("[Auto-Migration] Failed to run migration:", err);
+        }
+
+        // 0b. BACKFILL: Backfill missing componentCode for known shared types
         // This fixes existing flows that were created before componentCode was persisted.
         flow.screens = flow.screens.map(s => {
           if (!s.componentCode) {
@@ -1009,6 +1032,20 @@ export const useEditorStore = create<EditorState>()(
           state.isDirty = false;
         });
       },
+
+      libraryVersion: 0,
+      refreshLibrary: () => {
+        set((state) => {
+          state.libraryVersion = (state.libraryVersion || 0) + 1;
+        });
+      },
+
+      librarySnapshots: [],
+      setLibrarySnapshots: (snapshots) => {
+        set((state) => {
+          state.librarySnapshots = snapshots;
+        });
+      }
     })),
     {
       limit: 50,

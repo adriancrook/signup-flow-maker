@@ -248,7 +248,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Parent assesses child's level",
     category: "question",
     icon: "activity",
-    isShared: false,
+    isShared: true,
     tags: ["parent"],
     defaultScreen: {
       type: "MC",
@@ -271,7 +271,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Confirm experience level",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["affirmation", "parent"],
     defaultScreen: {
       type: "MSG",
@@ -290,7 +290,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Parent assesses tech literacy",
     category: "question",
     icon: "cpu",
-    isShared: false,
+    isShared: true,
     tags: ["parent"],
     defaultScreen: {
       type: "MC",
@@ -313,7 +313,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Confirm tech skills",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["affirmation", "parent"],
     defaultScreen: {
       type: "MSG",
@@ -332,7 +332,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Parent's concern about screens",
     category: "question",
     icon: "clock",
-    isShared: false,
+    isShared: true,
     tags: ["parent"],
     defaultScreen: {
       type: "MC",
@@ -356,7 +356,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Address screen time concerns",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["affirmation", "parent"],
     defaultScreen: {
       type: "MSG",
@@ -375,7 +375,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Does user need work certificate",
     category: "question",
     icon: "award",
-    isShared: false,
+    isShared: true,
     tags: ["adult"],
     defaultScreen: {
       type: "MC",
@@ -397,7 +397,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Confirm certificate availability",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["affirmation", "adult"],
     defaultScreen: {
       type: "MSG",
@@ -706,7 +706,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Input for child's name",
     category: "input",
     icon: "user",
-    isShared: false,
+    isShared: true,
     tags: ["parent"],
     defaultScreen: {
       type: "TXT",
@@ -726,7 +726,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher selects grades",
     category: "question",
     icon: "graduation-cap",
-    isShared: false,
+    isShared: true,
     tags: ["teacher"],
     defaultScreen: {
       type: "MS", // Multi-Select
@@ -770,7 +770,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Number of schools in district",
     category: "input",
     icon: "building",
-    isShared: false,
+    isShared: true,
     tags: ["district"],
     defaultScreen: {
       type: "NUM",
@@ -881,7 +881,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Classroom hardware",
     category: "question",
     icon: "monitor",
-    isShared: false,
+    isShared: true,
     tags: ["teacher"],
     defaultScreen: {
       type: "MC",
@@ -904,7 +904,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "DPA Requirement",
     category: "question",
     icon: "file-text",
-    isShared: false,
+    isShared: true,
     tags: ["district"],
     defaultScreen: {
       type: "MC",
@@ -1108,7 +1108,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Redirect for students with code",
     category: "terminal",
     icon: "log-out",
-    isShared: false,
+    isShared: true,
     tags: ["exit"],
     defaultScreen: {
       type: "EXIT",
@@ -1129,7 +1129,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Student class code check",
     category: "question",
     icon: "key",
-    isShared: false,
+    isShared: true,
     tags: ["gatekeeper", "student"],
     defaultScreen: {
       type: "MC",
@@ -1149,7 +1149,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Entry for individual flow",
     category: "entry",
     icon: "user",
-    isShared: false,
+    isShared: true,
     validFlows: ["individual"],
     tags: ["gatekeeper"],
     defaultScreen: {
@@ -1171,7 +1171,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Entry for educator flow",
     category: "entry",
     icon: "briefcase",
-    isShared: false,
+    isShared: true,
     validFlows: ["educator"],
     tags: ["gatekeeper"],
     defaultScreen: {
@@ -1197,7 +1197,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher grades affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1214,7 +1214,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher student count affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1231,7 +1231,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher content affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1248,7 +1248,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher rostering affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1265,7 +1265,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher environment affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1282,7 +1282,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher accessibility affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1299,7 +1299,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "Teacher device affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["teacher", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1317,7 +1317,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "School admin size affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["school-admin", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1334,7 +1334,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "School admin rostering affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["school-admin", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1351,7 +1351,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "School admin environment affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["school-admin", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1403,7 +1403,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "District scope affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["district-admin", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1420,7 +1420,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "District rostering affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["district-admin", "affirmation"],
     defaultScreen: {
       type: "MSG",
@@ -1437,7 +1437,7 @@ export const componentRegistry: ComponentTemplate[] = [
     description: "District compliance affirmation",
     category: "message",
     icon: "check-circle",
-    isShared: false,
+    isShared: true,
     tags: ["district-admin", "affirmation"],
     defaultScreen: {
       type: "MSG",

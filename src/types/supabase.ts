@@ -9,6 +9,66 @@ export type Json =
 export type Database = {
     public: {
         Tables: {
+            component_overrides: {
+                Row: {
+                    component_code: string
+                    created_at: string | null
+                    organization_id: string
+                    overrides: Json
+                    updated_at: string | null
+                    updated_by: string | null
+                }
+                Insert: {
+                    component_code: string
+                    created_at?: string | null
+                    organization_id: string
+                    overrides: Json
+                    updated_at?: string | null
+                    updated_by?: string | null
+                }
+                Update: {
+                    component_code?: string
+                    created_at?: string | null
+                    organization_id?: string
+                    overrides?: Json
+                    updated_at?: string | null
+                    updated_by?: string | null
+                }
+                Relationships: []
+            },
+            library_items: {
+                Row: {
+                    component_code: string
+                    organization_id: string
+                    label: string | null
+                    description: string | null
+                    icon: string | null
+                    default_props: Json | null
+                    updated_at: string | null
+                    updated_by: string | null
+                }
+                Insert: {
+                    component_code: string
+                    organization_id: string
+                    label?: string | null
+                    description?: string | null
+                    icon?: string | null
+                    default_props?: Json | null
+                    updated_at?: string | null
+                    updated_by?: string | null
+                }
+                Update: {
+                    component_code?: string
+                    organization_id?: string
+                    label?: string | null
+                    description?: string | null
+                    icon?: string | null
+                    default_props?: Json | null
+                    updated_at?: string | null
+                    updated_by?: string | null
+                }
+                Relationships: []
+            },
             comments: {
                 Row: {
                     content: string

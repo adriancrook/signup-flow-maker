@@ -74,4 +74,63 @@ export const sharedComponentService = {
             throw error;
         }
     },
+
+    /**
+     * Fetch Library Snapshots (Metadata + Default Props)
+     */
+    async fetchLibraryItems(): Promise<{ component_code: string; label: string; description: string; icon: string; default_props: Partial<Screen> }[]> {
+        const { data, error } = await supabase
+            .from("library_items")
+            .select("component_code, label, description, icon, default_props");
+
+        if (error) {
+            // It's possible the table is empty or RLS prevents access if no org, fail gracefully
+            console.warn("Error fetching library items:", error);
+            return [];
+        }
+        return (data || []).map(item => ({
+            component_code: item.component_code,
+            label: item.label || "",
+            description: item.description || "",
+            icon: item.icon || "help-circle",
+            default_props: item.default_props as unknown as Partial<Screen>
+        }));
+    },
+
+    /**
+     * Save/Update a Library Snapshot
+     * This pushes the current state of a node to be the new "Default" in the sidebar.
+     */
+    async saveLibraryItem(code: string, label: string, description: string, icon: string, defaultProps: Partial<Screen>): Promise<void> {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return;
+
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("organization_id")
+            .eq("id", userData.user.id)
+            .single();
+
+        if (!profile?.organization_id) return;
+
+        const payload = {
+            organization_id: profile.organization_id,
+            component_code: code,
+            label,
+            description,
+            icon,
+            default_props: defaultProps as any,
+            updated_at: new Date().toISOString(),
+            updated_by: userData.user.id
+        };
+
+        const { error } = await supabase
+            .from("library_items")
+            .upsert(payload, { onConflict: "organization_id, component_code" });
+
+        if (error) {
+            console.error("Error saving library item:", error);
+            throw error;
+        }
+    }
 };

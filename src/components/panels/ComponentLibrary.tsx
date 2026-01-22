@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Users,
   HelpCircle,
@@ -81,6 +81,21 @@ export function ComponentLibrary({ flowCategory, isReadOnly }: ComponentLibraryP
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
+  const libraryVersion = useEditorStore((state) => state.libraryVersion);
+  const librarySnapshots = useEditorStore((state) => state.librarySnapshots);
+  const setLibrarySnapshots = useEditorStore((state) => state.setLibrarySnapshots);
+
+  // Fetch Library Snapshots on Mount or Refresh
+  useEffect(() => {
+    import("@/services/sharedComponentService").then(({ sharedComponentService }) => {
+      sharedComponentService.fetchLibraryItems().then(items => {
+        if (items && items.length > 0) {
+          setLibrarySnapshots(items);
+        }
+      });
+    });
+  }, [libraryVersion]);
+
   // Constants for filters
   const ROLE_FILTERS = {
     individual: [
@@ -99,8 +114,43 @@ export function ComponentLibrary({ flowCategory, isReadOnly }: ComponentLibraryP
     .sort(([, a], [, b]) => a.order - b.order)
     .map(([key, info]) => ({ id: key, label: info.label }));
 
+  // Fetch Library Snapshots on Mount
+  useEffect(() => {
+    import("@/services/sharedComponentService").then(({ sharedComponentService }) => {
+      sharedComponentService.fetchLibraryItems().then(items => {
+        if (items && items.length > 0) {
+          setLibrarySnapshots(items);
+        }
+      });
+    });
+  }, []);
+
+  // Merge Snapshots with Static Registry
+  const mergedTemplates = useMemo(() => {
+    return componentTemplates.map(template => {
+      if (!template.code) return template;
+
+      const snapshot = librarySnapshots.find(s => s.component_code === template.code);
+      if (snapshot) {
+        // Apply Snapshot Overrides
+        return {
+          ...template,
+          name: snapshot.label || template.name,
+          description: snapshot.description || template.description,
+          icon: snapshot.icon || template.icon, // If we store icon strings
+          defaultScreen: {
+            ...template.defaultScreen,
+            ...snapshot.default_props
+          }
+        };
+      }
+      return template;
+    });
+  }, [librarySnapshots]); // Only re-calc when snapshots change
+
   const filteredTemplates = useMemo(() => {
-    let templates = componentTemplates;
+    let templates = mergedTemplates;
+
 
     // 1. Filter by Mode (Broad Scope)
     if (filterMode === "individual") {

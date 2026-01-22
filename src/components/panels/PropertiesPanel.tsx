@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag, ArrowRight } from "lucide-react";
+import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag, ArrowRight, Save, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,12 +45,31 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
   const selectedScreen = useEditorStore(selectSelectedScreen);
   const currentFlow = useEditorStore(selectCurrentFlow);
   const selectedLibraryItemId = useEditorStore((state) => state.selectedLibraryItemId);
+  const librarySnapshots = useEditorStore((state) => state.librarySnapshots);
   const { updateNode, updateSharedNode, removeNode, duplicateNode, setEntryScreen } = useEditorStore();
 
   if (selectedLibraryItemId && !selectedNode) {
-    const template = componentTemplates.find((t) => t.id === selectedLibraryItemId);
+    let template = componentTemplates.find((t) => t.id === selectedLibraryItemId);
 
     if (template) {
+      // MERGE SNAPSHOT IF EXISTS
+      if (template.code) {
+        const tCode = template.code;
+        const snapshot = librarySnapshots.find(s => s.component_code === tCode);
+        if (snapshot) {
+          template = {
+            ...template,
+            name: snapshot.label || template.name,
+            description: snapshot.description || template.description,
+            icon: snapshot.icon || template.icon,
+            defaultScreen: {
+              ...template.defaultScreen,
+              ...snapshot.default_props
+            }
+          };
+        }
+      }
+
       const availability = getComponentAvailability(template);
 
       return (
@@ -183,6 +202,32 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
     }
   };
 
+  const handleUpdateLibraryDefault = async () => {
+    if (!selectedScreen.componentCode) return;
+    if (!confirm("Update Library Default?\n\nThis will update the Library Sidebar icon/label and the default template for all users in your organization.")) return;
+
+    try {
+      const { sharedComponentService } = await import("@/services/sharedComponentService");
+      const { id, type, nextScreenId, componentCode, ...propsToSave } = selectedScreen as any;
+
+      await sharedComponentService.saveLibraryItem(
+        selectedScreen.componentCode,
+        selectedScreen.title || "Untitled Component",
+        (selectedScreen as any).description || "Custom Component",
+        selectedScreen.type === 'MC' ? 'help-circle' : 'layout',
+        propsToSave
+      );
+
+      // Trigger Library Refresh
+      useEditorStore.getState().refreshLibrary();
+
+      alert("Library Default Updated!");
+    } catch (e) {
+      console.error("Failed to update library default", e);
+      alert("Failed to update. See console.");
+    }
+  };
+
   const handleRepair = () => {
     // Manually assign the correct code based on type
     let code = "";
@@ -233,18 +278,40 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
             <h2 className="font-semibold text-sm">Properties</h2>
             {isSharedComponent ? (
               <div className="flex items-center gap-1">
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200" title="Changes to this component will sync across all flows">
-                  Linked: {selectedScreen.componentCode}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 text-gray-400 hover:text-red-500"
-                  title="Unlink Component"
-                  onClick={() => updateNode(selectedNode.id, { componentCode: undefined })}
-                >
-                  <X size={10} />
-                </Button>
+                {/* Master Control Badge */}
+                <div className="flex items-center bg-blue-50 border border-blue-200 rounded-md px-1.5 py-0.5 gap-1.5">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-bold text-blue-700 leading-none tracking-wider uppercase">MASTER</span>
+                    <span className="text-[9px] text-blue-500 leading-none font-mono" title={selectedScreen.componentCode}>{selectedScreen.componentCode}</span>
+                  </div>
+
+                  <Separator orientation="vertical" className="h-4 bg-blue-200" />
+
+                  {/* Push Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px] text-blue-700 hover:bg-blue-100 hover:text-blue-900"
+                    title="Update Library Default (Snapshot)"
+                    onClick={handleUpdateLibraryDefault}
+                  >
+                    <Save size={10} className="mr-1" />
+                    Save Default
+                  </Button>
+
+                  <Separator orientation="vertical" className="h-4 bg-blue-200" />
+
+                  {/* Unlink */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 text-blue-400 hover:text-red-500 hover:bg-blue-100"
+                    title="Unlink Component"
+                    onClick={() => updateNode(selectedNode.id, { componentCode: undefined })}
+                  >
+                    <Unlink size={10} />
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-1">
