@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag } from "lucide-react";
+import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +45,7 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
   const selectedScreen = useEditorStore(selectSelectedScreen);
   const currentFlow = useEditorStore(selectCurrentFlow);
   const selectedLibraryItemId = useEditorStore((state) => state.selectedLibraryItemId);
-  const { updateNode, removeNode, duplicateNode, setEntryScreen } = useEditorStore();
+  const { updateNode, updateSharedNode, removeNode, duplicateNode, setEntryScreen } = useEditorStore();
 
   if (selectedLibraryItemId && !selectedNode) {
     const template = componentTemplates.find((t) => t.id === selectedLibraryItemId);
@@ -160,16 +160,48 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
         </div>
       </div>
     );
-
-
   }
 
   const isLocked = (selectedScreen.isLocked !== false) || isReadOnly;
   const isEntryPoint = currentFlow?.entryScreenId === selectedScreen.id;
+  const isSharedComponent = !!selectedScreen.componentCode;
 
   const handleUpdate = (updates: Partial<Screen>) => {
-    updateNode(selectedNode.id, updates);
+    if (!selectedScreen || !selectedNode) return;
+
+    // Check for shared component code
+    const componentCode = selectedScreen.componentCode;
+
+    console.log(`[DEBUG] handleUpdate - ID: ${selectedNode.id}, ComponentCode: ${componentCode}, Updates:`, Object.keys(updates));
+
+    if (componentCode) {
+      // Sync to shared storage
+      updateSharedNode(selectedNode.id, updates, componentCode);
+    } else {
+      // Standard local update
+      updateNode(selectedNode.id, updates);
+    }
   };
+
+  const handleRepair = () => {
+    // Manually assign the correct code based on type
+    let code = "";
+    if (selectedScreen.type === 'FORM') code = 'FORM-SIGNUP';
+    if (selectedScreen.type === 'PAY') code = 'PAY-PLUS';
+    if (selectedScreen.type === 'INT' && selectedScreen.title === 'Plan Analysis') code = 'INT-PLAN-ANALYSIS';
+
+    if (code) {
+      // We cast to any because componentCode might strict type check if we didn't export it well,
+      // but we updated Screen type so it should be fine.
+      updateNode(selectedNode.id, { componentCode: code } as any);
+      alert("Component linked! Please reload the page to sync data.");
+    } else {
+      alert("Could not automatically determine the Link Code for this component.");
+    }
+  };
+
+
+
 
   const handleDelete = () => {
     if (isLocked) return;
@@ -197,7 +229,52 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-semibold text-sm">Properties</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-sm">Properties</h2>
+            {isSharedComponent ? (
+              <div className="flex items-center gap-1">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 border border-blue-200" title="Changes to this component will sync across all flows">
+                  Linked: {selectedScreen.componentCode}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-gray-400 hover:text-red-500"
+                  title="Unlink Component"
+                  onClick={() => updateNode(selectedNode.id, { componentCode: undefined })}
+                >
+                  <X size={10} />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Input
+                  className="h-6 text-[10px] w-32"
+                  placeholder="Link ID (e.g. MC-GOAL)"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = e.currentTarget.value;
+                      if (val) updateNode(selectedNode.id, { componentCode: val });
+                    }
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-gray-400"
+                  title="Auto-Generate Link ID from Title"
+                  onClick={() => {
+                    const prefix = selectedScreen.type;
+                    const slug = (selectedScreen.title || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                    const code = `${prefix}-${slug}`.toUpperCase();
+                    updateNode(selectedNode.id, { componentCode: code });
+                  }}
+                >
+                  <ArrowRight size={10} />
+                </Button>
+              </div>
+            )}
+          </div>
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -652,7 +729,7 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
                   </div>
 
                   <Input
-                    value={variant.question}
+                    value={variant.question || ""}
                     onChange={(e) =>
                       onUpdate({
                         variants: {
@@ -670,7 +747,7 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
                     {variant.options.map((option, index) => (
                       <div key={option.id} className="flex items-center gap-1">
                         <Input
-                          value={option.label}
+                          value={option.label || ""}
                           onChange={(e) => handleOptionChange(index, "label", e.target.value, key)}
                           className="h-6 text-xs flex-1"
                           placeholder="Label"
@@ -1387,6 +1464,7 @@ interface FormFieldsProps {
 }
 
 function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
+  const variantKeys = Object.keys(screen.variants || {});
 
   const toggleField = (field: "email" | "password" | "firstName" | "lastName") => {
     const current = screen.collectFields || [];
@@ -1404,6 +1482,72 @@ function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
     onUpdate({ socialProviders: newProviders });
   };
 
+  const handleVariantChange = (
+    key: string,
+    field: keyof FormScreen,
+    value: any
+  ) => {
+    const existingVariant = screen.variants?.[key] || {};
+    const newVariants = {
+      ...screen.variants,
+      [key]: {
+        ...existingVariant,
+        [field]: value,
+      },
+    };
+    onUpdate({ variants: newVariants });
+  };
+
+  const handleAddVariant = () => {
+    const newKey = `variant-${variantKeys.length + 1}`;
+    const newVariants = {
+      ...screen.variants,
+      [newKey]: {
+        headline: "New Headline",
+        copy: "New copy text",
+      },
+    };
+    onUpdate({ variants: newVariants });
+  };
+
+  const handleRemoveVariant = (key: string) => {
+    const newVariants = { ...screen.variants };
+    delete newVariants[key];
+    onUpdate({ variants: newVariants });
+  };
+
+  const handleRenameVariant = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey || !screen.variants) return;
+    const newVariants: Record<string, Partial<FormScreen>> = {};
+    for (const [k, v] of Object.entries(screen.variants)) {
+      newVariants[k === oldKey ? newKey : k] = v;
+    }
+    const updates: Partial<FormScreen> = { variants: newVariants };
+    if (screen.defaultVariant === oldKey) {
+      updates.defaultVariant = newKey;
+    }
+    onUpdate(updates);
+  };
+
+  const toggleVariantField = (variantKey: string, field: "email" | "password" | "firstName" | "lastName") => {
+    const variant = screen.variants?.[variantKey] || {};
+    const current = variant.collectFields || screen.collectFields || [];
+    const newFields = current.includes(field)
+      ? current.filter((f) => f !== field)
+      : [...current, field];
+
+    handleVariantChange(variantKey, "collectFields", newFields);
+  };
+
+  const toggleVariantProvider = (variantKey: string, provider: "google" | "microsoft" | "clever") => {
+    const variant = screen.variants?.[variantKey] || {};
+    const current = variant.socialProviders || screen.socialProviders || [];
+    const newProviders = current.includes(provider)
+      ? current.filter((p) => p !== provider)
+      : [...current, provider];
+    handleVariantChange(variantKey, "socialProviders", newProviders);
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -1412,7 +1556,7 @@ function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
         </Label>
         <Input
           id="headline"
-          value={screen.headline}
+          value={screen.headline || ""}
           onChange={(e) => onUpdate({ headline: e.target.value })}
           className="h-8 text-sm"
           disabled={isLocked}
@@ -1425,7 +1569,7 @@ function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
         </Label>
         <textarea
           id="copy"
-          value={screen.copy}
+          value={screen.copy || ""}
           onChange={(e) => onUpdate({ copy: e.target.value })}
           className="w-full h-20 px-3 py-2 text-sm border rounded-md resize-none"
           disabled={isLocked}
@@ -1487,6 +1631,158 @@ function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
           </div>
         </div>
       )}
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Role-Based Variants
+            </h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleAddVariant}
+            disabled={isLocked}
+          >
+            <Plus size={12} className="mr-1" />
+            Add Variant
+          </Button>
+        </div>
+
+        {variantKeys.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
+              Default Variant (Fallback)
+            </Label>
+            <select
+              id="defaultVariant"
+              value={screen.defaultVariant || ""}
+              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
+              className="w-full h-8 px-2 text-sm border rounded-md"
+              disabled={isLocked}
+            >
+              <option value="">None (Use Default Content)</option>
+              {variantKeys.map((key) => (
+                <option key={key} value={key}>
+                  {key}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {variantKeys.map((key) => {
+            const variant = screen.variants?.[key];
+            if (!variant) return null;
+            // Determine active custom settings or inherit from default
+            const showSocial = variant.showSocialLogin !== undefined ? variant.showSocialLogin : screen.showSocialLogin;
+            const collectFields = variant.collectFields || screen.collectFields || [];
+            const socialProviders = variant.socialProviders || screen.socialProviders || [];
+            const fieldsInherited = variant.collectFields === undefined;
+            const socialInherited = variant.socialProviders === undefined;
+
+            return (
+              <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={key}
+                    onChange={(e) => handleRenameVariant(key, e.target.value)}
+                    className="h-6 text-xs flex-1 font-medium"
+                    placeholder="Variant key"
+                    disabled={isLocked}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleRemoveVariant(key)}
+                    disabled={isLocked}
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-gray-500">Messaging</Label>
+                  <Input
+                    value={variant.headline || ""}
+                    onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="Headline"
+                    disabled={isLocked}
+                  />
+                  <textarea
+                    value={variant.copy || ""}
+                    onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
+                    className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
+                    placeholder="Copy text..."
+                    disabled={isLocked}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-gray-500">Fields</Label>
+                  <div className="space-y-1 pl-1">
+                    {(["email", "password", "firstName", "lastName"] as const).map((field) => (
+                      <label key={field} className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={collectFields.includes(field)}
+                          onChange={() => toggleVariantField(key, field)}
+                          className="rounded"
+                          disabled={isLocked}
+                        />
+                        <span className={collectFields.includes(field) ? "text-black" : "text-gray-500"}>
+                          {field} {fieldsInherited ? "(inherited)" : ""}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase text-gray-500">Social</Label>
+                  <div className="flex items-center gap-2 pl-1 mb-1">
+                    <input
+                      type="checkbox"
+                      checked={showSocial}
+                      onChange={(e) => handleVariantChange(key, "showSocialLogin", e.target.checked)}
+                      className="rounded"
+                      disabled={isLocked}
+                    />
+                    <span className="text-xs">Show Social Login</span>
+                  </div>
+
+                  {showSocial && (
+                    <div className="space-y-1 pl-1 ml-4 border-l-2 border-gray-200 pl-2">
+                      {(["google", "microsoft", "clever"] as const).map((provider) => (
+                        <label key={provider} className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={socialProviders.includes(provider)}
+                            onChange={() => toggleVariantProvider(key, provider)}
+                            className="rounded"
+                            disabled={isLocked}
+                          />
+                          <span className={socialProviders.includes(provider) ? "text-black" : "text-gray-500"}>
+                            {provider} {socialInherited ? "(inherited)" : ""}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1891,4 +2187,3 @@ function TypingTestFields({ screen, onUpdate, isLocked }: TypingTestFieldsProps)
   );
 }
 
-// DiscoveryFields removed - use QuestionFields (MultipleChoice) instead

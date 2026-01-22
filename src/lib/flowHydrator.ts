@@ -48,6 +48,8 @@ export const hydrateFlow = (blueprint: ComponentCode[]): HydratedFlow => {
             ...template.defaultScreen,
             // Ensure type is uppercase as per registry
             type: template.defaultScreen.type || "default",
+            // INJECT COMPONENT CODE FOR SYNC
+            componentCode: template.code,
         };
 
         // 2. Create Node
@@ -58,7 +60,7 @@ export const hydrateFlow = (blueprint: ComponentCode[]): HydratedFlow => {
             data: {
                 screen: screenData,
                 label: template.name,
-                code: template.code,
+                code: template.code, // Keep legacy or for node internal use as well
                 isValid: true,
                 isSelected: false,
                 isHighlighted: false,

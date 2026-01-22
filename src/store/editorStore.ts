@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { temporal } from "zundo";
+import { deepmergeCustom } from "deepmerge-ts";
 import { immer } from "zustand/middleware/immer";
 import {
   Node,
@@ -244,16 +245,141 @@ export const useEditorStore = create<EditorState>()(
       previewMode: false,
 
       // Set entire flow
-      setFlow: (flow) => {
+      // Set entire flow
+      setFlow: async (flow) => {
+        console.log("[DEBUG] setFlow called with screens:", flow.screens.length);
+        console.log("[DEBUG] First screen type:", flow.screens[0]?.type);
+
+        // Create custom deepmerge that replaces arrays instead of concatenating
+        const customDeepmerge = deepmergeCustom({
+          mergeArrays: false
+        });
+
+        // 0. AUTO-MIGRATION: Backfill missing componentCode for known shared types
+        // This fixes existing flows that were created before componentCode was persisted.
+        flow.screens = flow.screens.map(s => {
+          if (!s.componentCode) {
+            // Heuristic: If it matches a known unique singleton type, assign the code.
+            if (s.type === 'FORM') return { ...s, componentCode: 'FORM-SIGNUP' };
+            if (s.type === 'PAY') return { ...s, componentCode: 'PAY-PLUS' };
+            if (s.type === 'INT' && s.title === 'Plan Analysis') return { ...s, componentCode: 'INT-PLAN-ANALYSIS' };
+            if (s.type === 'EXIT' && s.title === 'SSO Login') return { ...s, componentCode: 'EXIT-SSO-HANDOFF' };
+
+            // For common questions (MC/MS), it's harder to guess without strict matching.
+            // We can try matching by Title, but user might have renamed it.
+            // For now, fixing FORM/PAY is the critical user request.
+          }
+          return s;
+        });
+
+        // 1. Identify shared components
+        const sharedNodes = flow.screens.filter(s => {
+          return !!s.componentCode;
+        });
+
+        // 2. Fetch overrides
+        const codes = sharedNodes.map(s => s.componentCode).filter((c): c is string => !!c);
+        let overridesMap: Record<string, Partial<Screen>> = {};
+
+        if (codes.length > 0) {
+          try {
+            const { sharedComponentService } = await import("@/services/sharedComponentService");
+            const overrides = await sharedComponentService.fetchOverrides(codes);
+            overrides.forEach(o => {
+              overridesMap[o.component_code] = o.overrides;
+            });
+          } catch (e) {
+            console.error("Failed to load shared component overrides", e);
+          }
+        }
+
+        // 3. Apply overrides
+        const syncedScreens = flow.screens.map(screen => {
+          const code = screen.componentCode;
+          if (code && overridesMap[code]) {
+            // Deep merge or shallow merge? Shallow for now, but sensitive props like variants need care.
+            // For variants, we probably want to replace them if they exist in override.
+            // FIX: Use deepmerge to safely combine local default properties with remote overrides
+            // We use customDeepmerge with mergeArrays: false to prevent duplicating list items.
+            return customDeepmerge(screen, overridesMap[code]) as Screen;
+          }
+          return screen;
+        });
+
         set((state) => {
-          state.currentFlow = flow;
-          state.nodes = screensToNodes(flow.screens);
-          state.edges = screensToEdges(flow.screens);
+          state.currentFlow = { ...flow, screens: syncedScreens };
+          state.nodes = screensToNodes(syncedScreens);
+          state.edges = screensToEdges(syncedScreens);
           state.isDirty = false;
           state.selectedNodeId = null;
           state.selectedEdgeId = null;
           state.selectedLibraryItemId = null;
         });
+      },
+
+      // Update shared node (New Action)
+      updateSharedNode: async (nodeId, screenUpdates, componentCode) => {
+        console.log(`[DEBUG] updateSharedNode ENTRY - NodeId: ${nodeId}, Code: ${componentCode}`);
+        // 1. Update local state immediately
+        // This merges the updates into the current node state
+        get().updateNode(nodeId, screenUpdates);
+
+        // 2. Persist to shared storage
+        // CRITICAL FIX: We must save the FULL merged state of the component, not just the partial update.
+        // Saving just the partial "overrides" the database row, causing data loss for other fields.
+        try {
+          const state = get();
+          const node = state.nodes.find(n => n.id === nodeId);
+          console.log(`[DEBUG] updateSharedNode - Node Found? ${!!node}`);
+          if (!node) {
+            console.error("[DEBUG] updateSharedNode - Node NOT found in store!");
+            return;
+          }
+
+          const updatedScreen = node.data.screen;
+
+          // Filter out structural properties that should NOT be shared/synced
+          // We only want to sync "content" and "configuration".
+          const {
+            id, position, nextScreenId, type, componentCode: _, isLocked,
+            // We generally DO want to sync options layout (labels), but 'nextScreenId' inside options?
+            // If we sync options, we should strip their navigation data.
+            ...syncableProps
+          } = updatedScreen as any;
+
+          // Deep clean options if present to remove navigation links which are local to the flow
+          if (syncableProps.options && Array.isArray(syncableProps.options)) {
+            syncableProps.options = syncableProps.options.map((opt: any) => {
+              const { nextScreenId, ...rest } = opt;
+              return rest;
+            });
+          }
+
+          const { sharedComponentService } = await import("@/services/sharedComponentService");
+          await sharedComponentService.saveOverride(componentCode, syncableProps);
+
+          // 3. Update other instances in the current flow
+          set((state) => {
+            state.nodes.forEach(n => {
+              if (n.id !== nodeId && (n.data.screen as any).componentCode === componentCode) {
+                // Merge the new syncable props into the other nodes
+                // We preserve their local ID/Position/Links, but update content
+                const newScreen = { ...n.data.screen, ...syncableProps };
+                n.data = { ...n.data, screen: newScreen };
+
+                if (state.currentFlow) {
+                  const idx = state.currentFlow.screens.findIndex(s => s.id === n.id);
+                  if (idx !== -1) {
+                    state.currentFlow.screens[idx] = newScreen;
+                  }
+                }
+              }
+            });
+          });
+
+        } catch (e) {
+          console.error("Failed to save shared override", e);
+        }
       },
 
       // Load from Blueprint
@@ -349,6 +475,16 @@ export const useEditorStore = create<EditorState>()(
       // Add node
       addNode: (screenPartial, position, customId) => {
         const id = customId || nanoid();
+
+        // Check for overrides if this is a shared component
+        // Note: addNode is synchronous, but fetching overrides is async.
+        // We handle this by adding the node first, then triggering an async update if needed.
+        // OR we can't make addNode async smoothly without breaking UI expectations.
+        // Better approach: Since we don't have the override yet, we add as is.
+        // THEN we trigger a fetch and update.
+
+        const screenCode = (screenPartial as any).code;
+
         const screen: Screen = {
           id,
           type: screenPartial.type || "question",
@@ -383,6 +519,52 @@ export const useEditorStore = create<EditorState>()(
             state.isDirty = true;
           }
         });
+
+        // 3. Sync Logic: If this is a shared component from the library, 
+        // immediately fetch its "Master Configuration" from the DB and apply it.
+        // This ensures library spawns are up-to-date with global edits.
+        const code = screen.componentCode;
+        if (code) {
+          // We need to fetch and merge.
+          // Since we are in an action, we can't easily await inside the setState unless we make it async,
+          // but we can trigger the update asynchronously.
+          import("@/services/sharedComponentService").then(async ({ sharedComponentService }) => {
+            try {
+              const overrides = await sharedComponentService.fetchOverrides([code]);
+              if (overrides.length > 0 && overrides[0].overrides) {
+                // We need to deep merge this.
+                // The best way is to use existing updateSharedNode or updateNode?
+                // updateNode does a shallow merge on top level properties, but we need deep merge for variants.
+                // Let's use get().setFlow logic equivalent or just call updateNode but manually merged?
+                // Actually, updateNode is just a state setter. We can re-use the deepmerge logic here?
+                // No, simpler: Just call updateNode, but we need deepmerge.
+
+                // Let's re-import the customDeepmerge from top of file or use it here
+                const { deepmergeCustom } = await import("deepmerge-ts");
+                const customDeepmerge = deepmergeCustom({ mergeArrays: false });
+
+                const currentScreen = get().nodes.find(n => n.id === id)?.data.screen;
+                if (currentScreen) {
+                  const merged = customDeepmerge(currentScreen, overrides[0].overrides);
+                  get().updateNode(id, merged as Partial<Screen>);
+                }
+              }
+            } catch (e) {
+              console.error("Failed to sync library item on spawn:", e);
+            }
+          });
+        }
+
+        // Async Fetch & Apply Overrides for Shared Components
+        if (screenCode) {
+          import("@/services/sharedComponentService").then(({ sharedComponentService }) => {
+            sharedComponentService.fetchOverrides([screenCode]).then((overrides) => {
+              if (overrides.length > 0 && overrides[0].overrides) {
+                get().updateNode(id, overrides[0].overrides);
+              }
+            });
+          });
+        }
 
         return id;
       },
