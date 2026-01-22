@@ -531,6 +531,8 @@ export const useEditorStore = create<EditorState>()(
         set((state) => {
           state.nodes = applyNodeChanges(changes, state.nodes) as FlowNode[];
           // Sync position changes to screens
+          let hasMeaningfulChanges = false;
+
           changes.forEach((change) => {
             if (change.type === "position" && change.position && state.currentFlow) {
               const screen = state.currentFlow.screens.find(
@@ -540,15 +542,28 @@ export const useEditorStore = create<EditorState>()(
                 screen.position = change.position;
               }
             }
+            // Ignore selection and dimension changes for dirty state
+            // "dimensions" can fire on mount/layout, causing false dirty state
+            if (change.type !== "select" && change.type !== "dimensions") {
+              hasMeaningfulChanges = true;
+            }
           });
-          state.isDirty = true;
+
+          if (hasMeaningfulChanges) {
+            state.isDirty = true;
+          }
         });
       },
 
       onEdgesChange: (changes) => {
         set((state) => {
           state.edges = applyEdgeChanges(changes, state.edges) as FlowEdge[];
-          state.isDirty = true;
+
+          // Check if there are any non-selection changes
+          const hasMeaningfulChanges = changes.some(change => change.type !== "select");
+          if (hasMeaningfulChanges) {
+            state.isDirty = true;
+          }
         });
       },
 

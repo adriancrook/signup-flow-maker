@@ -233,7 +233,7 @@ export function EditorToolbar({ flowName }: EditorToolbarProps) {
             size="sm"
             className="h-8 gap-1.5"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !isDirty}
           >
             {isSaving ? (
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
