@@ -9,11 +9,11 @@ import Link from "next/link";
 
 interface Profile {
     id: string;
-    full_name: string;
-    avatar_url: string;
-    role: 'admin' | 'editor' | 'viewer';
+    full_name: string | null;
+    avatar_url: string | null;
+    role: string | null;
     organization_id: string;
-    email?: string; // We might not have this on profile directly depending on schema, but let's assume we might join or it's missing
+    email?: string;
 }
 
 export default function TeamPage() {
@@ -163,7 +163,7 @@ export default function TeamPage() {
                                     <td className="px-6 py-4">
                                         {isAdmin && profile.id !== currentUser?.id ? (
                                             <select
-                                                value={profile.role}
+                                                value={profile.role || 'viewer'}
                                                 disabled={updating === profile.id}
                                                 onChange={(e) => handleRoleChange(profile.id, e.target.value as any)}
                                                 className="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"

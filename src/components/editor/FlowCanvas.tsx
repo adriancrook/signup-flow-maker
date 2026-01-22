@@ -333,7 +333,7 @@ export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
           onNodeDragStop={handleDragStop} // Keep enabled to save position
           onNodesDelete={onNodesDelete} // Keep enabled to allow deletion of allowed nodes (sticky notes)
           onInit={(instance) => {
-            reactFlowInstance.current = instance;
+            reactFlowInstance.current = instance as unknown as ReactFlowInstance<FlowNode, FlowEdge>;
           }}
           nodeTypes={nodeTypes}
           fitView

@@ -303,7 +303,7 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
 
             {/* Type-specific fields */}
             <div>
-              <ScreenTypeFields screen={selectedScreen} onUpdate={handleUpdate} isLocked={isLocked} />
+              <ScreenTypeFields screen={selectedScreen} onUpdate={handleUpdate} isLocked={!!isLocked} />
             </div>
           </TabsContent>
 
