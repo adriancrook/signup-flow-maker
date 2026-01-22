@@ -16,7 +16,10 @@ export type ScreenType =
   | "FORM" // Account Creation
   | "PAY" // Paywall
   | "EXIT" // Handoff
-  | "LOGIC"; // Branch/Logic
+  | "PAY" // Paywall
+  | "EXIT" // Handoff
+  | "LOGIC" // Branch/Logic
+  | "STICKY-NOTE"; // Sticky Note
 
 // Component Code format: [TYPE]-[SLUG]-[VARIANT]
 export type ComponentCode = string;
@@ -275,6 +278,16 @@ export interface ExitScreen extends BaseScreen {
   isTerminal: true;
 }
 
+// Sticky Note Screen (STICKY-NOTE)
+export interface StickyNoteScreen extends BaseScreen {
+  type: "STICKY-NOTE";
+  color?: "yellow" | "blue" | "green" | "pink";
+  metadata?: {
+    authorId: string;
+    createdAt: string;
+  };
+}
+
 // Union type of all screens
 export type Screen =
   | MultipleChoiceScreen
@@ -286,7 +299,8 @@ export type Screen =
   | MessageScreen
   | FormScreen
   | ExitScreen
-  | PaywallScreen;
+  | PaywallScreen
+  | StickyNoteScreen;
 
 // React Flow Node Data
 export interface FlowNodeData extends Record<string, unknown> {
@@ -311,7 +325,8 @@ export type ComponentCategory =
   | "input"
   | "routing"
   | "terminal"
-  | "message";
+  | "message"
+  | "annotation";
 
 export interface ComponentTemplate {
   id: string;
@@ -365,6 +380,10 @@ export function isExitScreen(screen: Screen): screen is ExitScreen {
 
 export function isPaywallScreen(screen: Screen): screen is PaywallScreen {
   return screen.type === "PAY";
+}
+
+export function isStickyNoteScreen(screen: Screen): screen is StickyNoteScreen {
+  return screen.type === "STICKY-NOTE";
 }
 
 // Utility to check if screen has options

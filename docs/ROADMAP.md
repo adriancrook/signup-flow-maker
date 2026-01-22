@@ -42,6 +42,17 @@ To build the definitive "Source of Truth" for complex user signup flows, enablin
     *   **Backgrounds**: Upload custom images to use as the backdrop for the preview canvas.
     *   **Theming**: CSS-based styling overrides to match production aesthetics in the preview.
 
+*   **[ ] Research: Data-Driven Flow Pipeline (Post-Figma)**
+    *   **Objective**: Replace manual 100+ screen design with a template-based hydration system.
+    *   **Workflow Exploration**:
+        1. Tool hydrates Figma OR Figma exports atomic component templates.
+        2. Export configuration data files from Flow Maker.
+        3. **The "Third Layer"**: A lightweight engine (custom or OSS) to assemble the flow at runtime on Typing.com.
+    *   **Constraints**:
+        *   Must avoid traffic-based pricing models (e.g., NO Funnelfox).
+        *   Must handle high-volume traffic (Typing.com scale) without per-user costs.
+        *   Preference: Open-source solutions or "Build it ourselves" approach.
+
 
 ## 🛡️ Phase 4: Operational Maturity (Q3 2026)
 *Goal: Treat the Flow Maker as mission-critical infrastructure.*

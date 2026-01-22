@@ -68,7 +68,18 @@ export function DashboardFlowList() {
                         <h3 className="font-semibold text-lg group-hover:text-primary transition-colors truncate pr-2">
                             {flow.name}
                         </h3>
-                        <ArrowRight size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
+                        <div className="flex items-center gap-2">
+                            {flow.unreadCount > 0 ? (
+                                <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full animate-in zoom-in" title="Unread comments">
+                                    {flow.unreadCount > 9 ? '9+' : flow.unreadCount}
+                                </span>
+                            ) : flow.totalCommentCount > 0 && (
+                                <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-gray-500 bg-gray-100 rounded-full animate-in zoom-in" title="Total comments">
+                                    {flow.totalCommentCount > 9 ? '9+' : flow.totalCommentCount}
+                                </span>
+                            )}
+                            <ArrowRight size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
+                        </div>
                     </div>
 
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-2 h-10">

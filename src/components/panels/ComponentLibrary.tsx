@@ -39,6 +39,7 @@ import {
   categoryInfo,
 } from "@/data/componentRegistry";
 import type { FlowCategory, ComponentTemplate } from "@/types/flow";
+import { cn } from "@/lib/utils";
 
 // Icon mapping
 const iconMap: Record<string, React.ElementType> = {
@@ -310,16 +311,21 @@ function ComponentCard({ template, onDragStart }: ComponentCardProps) {
   const selectLibraryItem = useEditorStore((state) => state.selectLibraryItem);
   const selectedLibraryItemId = useEditorStore((state) => state.selectedLibraryItemId);
   const isSelected = selectedLibraryItemId === template.id;
+  const isStickyNote = template.id === 'sticky-note';
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, template)}
       onClick={() => selectLibraryItem(template.id)}
-      className={`flex items-start gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-colors ${isSelected
-        ? "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
-        : "bg-gray-50 border-transparent hover:border-gray-200 hover:bg-gray-100"
-        }`}
+      className={cn(
+        "flex items-start gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-colors",
+        isSelected
+          ? "bg-blue-50 border-blue-200 ring-1 ring-blue-300"
+          : isStickyNote
+            ? "bg-yellow-50 border-yellow-200 hover:border-yellow-300 hover:bg-yellow-100"
+            : "bg-gray-50 border-transparent hover:border-gray-200 hover:bg-gray-100"
+      )}
     >
       <div className="flex-shrink-0 w-8 h-8 rounded bg-white border flex items-center justify-center">
         <Icon size={16} className="text-gray-600" />
@@ -328,7 +334,7 @@ function ComponentCard({ template, onDragStart }: ComponentCardProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-900">{template.name}</p>
-          {template.isShared && (
+          {template.isShared && template.id !== "sticky-note" && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
               Shared
             </Badge>

@@ -8,12 +8,14 @@ export interface FlowSummary {
     description: string | null;
     updatedAt: string;
     currentVersionId: string | null;
+    unreadCount: number;
+    totalCommentCount: number;
 }
 
 export const flowService = {
     // Fetch all flows visible to the user (RLS will filter by organization)
     async fetchFlows(): Promise<FlowSummary[]> {
-        const { data, error } = await supabase
+        const { data: flows, error } = await supabase
             .from("flows")
             .select("id, name, description, updated_at, current_version_id")
             .order("updated_at", { ascending: false });
@@ -23,13 +25,31 @@ export const flowService = {
             throw error;
         }
 
-        return data.map((flow) => ({
-            id: flow.id,
-            name: flow.name,
-            description: flow.description,
-            updatedAt: flow.updated_at || new Date().toISOString(),
-            currentVersionId: flow.current_version_id,
-        }));
+        // Fetch stats from improved view
+        const { data: statsData } = await supabase
+            .from("flow_dashboard_stats" as any)
+            .select("flow_id, total_open_comments, unread_count");
+
+        const statsMap = new Map<string, { unread: number, total: number }>();
+        statsData?.forEach((item: any) => {
+            statsMap.set(item.flow_id, {
+                unread: item.unread_count,
+                total: item.total_open_comments
+            });
+        });
+
+        return flows.map((flow) => {
+            const stats = statsMap.get(flow.id) || { unread: 0, total: 0 };
+            return {
+                id: flow.id,
+                name: flow.name,
+                description: flow.description,
+                updatedAt: flow.updated_at || new Date().toISOString(),
+                currentVersionId: flow.current_version_id,
+                unreadCount: stats.unread,
+                totalCommentCount: stats.total,
+            };
+        });
     },
 
     // Fetch a specific flow and its latest version data

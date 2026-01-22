@@ -1,6 +1,7 @@
 import { ComponentTemplate, ScreenType, ComponentCategory } from "../types/flow";
 
 export const categoryInfo: Record<string, { label: string; order: number }> = {
+  annotation: { label: "Annotations", order: -1 },
   entry: { label: "Entry Points", order: 1 },
   question: { label: "Questions", order: 2 },
   input: { label: "Inputs", order: 3 },
@@ -12,6 +13,24 @@ export const componentRegistry: ComponentTemplate[] = [
   // ---------------------------------------------------------------------------
   // 1. SCREEN COMPONENTS
   // ---------------------------------------------------------------------------
+
+  // 1.0 Sticky Note
+  {
+    id: "sticky-note",
+    name: "Sticky Note",
+    code: "STICKY-NOTE",
+    description: "Add a comment or note to the canvas",
+    category: "annotation",
+    icon: "sticky-note",
+    isShared: true,
+    tags: ["annotation", "comment"],
+    defaultScreen: {
+      type: "STICKY-NOTE",
+      title: "Note",
+      color: "yellow",
+      position: { x: 0, y: 0 },
+    },
+  },
 
   // 1.1 Social Proof
   {

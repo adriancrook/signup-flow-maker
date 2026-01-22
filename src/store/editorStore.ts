@@ -42,6 +42,7 @@ interface EditorState {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   selectedLibraryItemId: string | null;
+  activeDiscussionNodeId: string | null;
 
   // Editor state
   isDirty: boolean;
@@ -81,6 +82,10 @@ interface EditorState {
   selectEdge: (edgeId: string | null) => void;
   selectLibraryItem: (itemId: string | null) => void;
   clearSelection: () => void;
+
+  // Discussion
+  openDiscussion: (nodeId: string) => void;
+  closeDiscussion: () => void;
 
   // Variable management
   addVariable: (variable: Omit<FlowVariable, "id">) => string;
@@ -230,6 +235,7 @@ export const useEditorStore = create<EditorState>()(
       selectedNodeId: null,
       selectedEdgeId: null,
       selectedLibraryItemId: null,
+      activeDiscussionNodeId: null,
       isDirty: false,
       isValidating: false,
       validationErrors: [],
@@ -653,6 +659,18 @@ export const useEditorStore = create<EditorState>()(
           state.nodes.forEach((node) => {
             node.data.isSelected = false;
           });
+        });
+      },
+
+      // Discussion
+      openDiscussion: (nodeId) => {
+        set((state) => {
+          state.activeDiscussionNodeId = nodeId;
+        });
+      },
+      closeDiscussion: () => {
+        set((state) => {
+          state.activeDiscussionNodeId = null;
         });
       },
 
