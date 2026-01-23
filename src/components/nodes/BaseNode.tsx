@@ -118,7 +118,7 @@ function BaseNodeComponent({
             {screen.title}
           </p>
         </div>
-        <div className="flex gap-1 mr-9 self-start exclude-from-capture">
+        <div className="flex gap-1 mr-9 self-start exclude-from-capture opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={handleCopyImage}
             className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
