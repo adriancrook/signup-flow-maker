@@ -40,6 +40,7 @@ import {
 } from "@/data/componentRegistry";
 import type { FlowCategory, ComponentTemplate } from "@/types/flow";
 import { cn } from "@/lib/utils";
+import { getComponentAvailability } from "@/lib/componentUtils";
 
 // Icon mapping
 const iconMap: Record<string, React.ElementType> = {
@@ -154,13 +155,15 @@ export function ComponentLibrary({ flowCategory, isReadOnly }: ComponentLibraryP
 
     // 1. Filter by Mode (Broad Scope)
     if (filterMode === "individual") {
-      templates = templates.filter(
-        (t) => t.isShared || (t.validFlows && t.validFlows.includes("individual"))
-      );
+      templates = templates.filter((t) => {
+        const { validFlows } = getComponentAvailability(t);
+        return validFlows.includes("all") || validFlows.includes("individual");
+      });
     } else if (filterMode === "educator") {
-      templates = templates.filter(
-        (t) => t.isShared || (t.validFlows && t.validFlows.includes("educator"))
-      );
+      templates = templates.filter((t) => {
+        const { validFlows } = getComponentAvailability(t);
+        return validFlows.includes("all") || validFlows.includes("educator");
+      });
     }
 
     // 2. Filter by Role (Specific Persona)
@@ -237,9 +240,13 @@ export function ComponentLibrary({ flowCategory, isReadOnly }: ComponentLibraryP
       event.preventDefault();
       return;
     }
+    const screenData = {
+      ...template.defaultScreen,
+      componentCode: template.code,
+    };
     event.dataTransfer.setData(
       "application/json",
-      JSON.stringify(template.defaultScreen)
+      JSON.stringify(screenData)
     );
     event.dataTransfer.effectAllowed = "move";
   };
@@ -370,6 +377,8 @@ function ComponentCard({ template, onDragStart, isReadOnly }: ComponentCardProps
   const isSelected = selectedLibraryItemId === template.id;
   const isStickyNote = template.id === 'sticky-note';
 
+  const { isShared } = getComponentAvailability(template);
+
   return (
     <div
       draggable={!isReadOnly || isStickyNote}
@@ -391,7 +400,7 @@ function ComponentCard({ template, onDragStart, isReadOnly }: ComponentCardProps
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-900">{template.name}</p>
-          {template.isShared && template.id !== "sticky-note" && (
+          {isShared && template.id !== "sticky-note" && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
               Shared
             </Badge>

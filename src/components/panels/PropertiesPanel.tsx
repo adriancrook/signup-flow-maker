@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag, ArrowRight, Save, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,12 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   useEditorStore,
@@ -47,6 +53,24 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
   const selectedLibraryItemId = useEditorStore((state) => state.selectedLibraryItemId);
   const librarySnapshots = useEditorStore((state) => state.librarySnapshots);
   const { updateNode, updateSharedNode, removeNode, duplicateNode, setEntryScreen } = useEditorStore();
+  const [usageList, setUsageList] = useState<{ flowId: string, flowName: string }[]>([]);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+
+  useEffect(() => {
+    if (selectedScreen?.componentCode) {
+      setIsLoadingUsage(true);
+      import("@/services/sharedComponentService").then(({ sharedComponentService }) => {
+        sharedComponentService.findComponentUsage(selectedScreen.componentCode!)
+          .then(data => {
+            setUsageList(data);
+          })
+          .catch(err => console.error("Failed to load usage", err))
+          .finally(() => setIsLoadingUsage(false));
+      });
+    } else {
+      setUsageList([]);
+    }
+  }, [selectedScreen?.componentCode]);
 
   if (selectedLibraryItemId && !selectedNode) {
     let template = componentTemplates.find((t) => t.id === selectedLibraryItemId);
@@ -191,7 +215,7 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
     // Check for shared component code
     const componentCode = selectedScreen.componentCode;
 
-    console.log(`[DEBUG] handleUpdate - ID: ${selectedNode.id}, ComponentCode: ${componentCode}, Updates:`, Object.keys(updates));
+
 
     if (componentCode) {
       // Sync to shared storage
@@ -482,10 +506,51 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
                 disabled={isLocked}
               />
             </div>
+
+
+            <Separator />
+
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Usage
+              </h3>
+              {isLoadingUsage ? (
+                <p className="text-xs text-gray-400">Loading usage...</p>
+              ) : selectedScreen.componentCode ? (
+                <div className="space-y-2">
+                  {usageList.filter(u => u.flowId !== currentFlow?.id).length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-500">Also used in:</p>
+                      <ul className="space-y-1">
+                        {usageList.filter(u => u.flowId !== currentFlow?.id).map(u => (
+                          <li key={u.flowId} className="text-xs bg-gray-50 px-2 py-1 rounded border flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                            {u.flowName}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">
+                      Not used in any other flows.
+                    </p>
+                  )}
+                  {usageList.find(u => u.flowId === currentFlow?.id) && (
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      (Currently active in this flow)
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">
+                  This component is local to this flow. Link it to a library component to track usage.
+                </p>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
-      </ScrollArea>
-    </div>
+      </ScrollArea >
+    </div >
   );
 }
 
@@ -540,6 +605,15 @@ function ScreenTypeFields({ screen, onUpdate, isLocked }: ScreenTypeFieldsProps)
       );
   }
 }
+
+const STANDARD_ROLES = [
+  "student",
+  "teacher",
+  "parent",
+  "school-admin",
+  "district-admin",
+  "adult",
+];
 
 interface QuestionFieldsProps {
   screen: MultipleChoiceScreen | MultiSelectScreen;
@@ -616,8 +690,22 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
     }
   };
 
-  const handleAddVariant = () => {
-    const newKey = `variant-${variantKeys.length + 1}`;
+  const handleAddVariant = (roleKey?: string) => {
+    let newKey = roleKey;
+
+    if (!newKey) {
+      newKey = `variant-${variantKeys.length + 1}`;
+    }
+
+    if (variantKeys.includes(newKey)) {
+      if (roleKey) {
+        alert(`Variant '${roleKey}' already exists.`);
+        return;
+      }
+      // simplistic collision avoidance for default naming
+      newKey = `variant-${variantKeys.length + 2}`;
+    }
+
     const updates: Partial<MultipleChoiceScreen> = {
       variants: {
         ...(screen as MultipleChoiceScreen).variants,
@@ -728,16 +816,34 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
                 Role-Based Variants
               </h3>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={handleAddVariant}
-              disabled={isLocked}
-            >
-              <Plus size={12} className="mr-1" />
-              Add Variant
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={isLocked}
+                >
+                  <Plus size={12} className="mr-1" />
+                  Add Variant
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {STANDARD_ROLES.map((role) => (
+                  <DropdownMenuItem key={role} onClick={() => handleAddVariant(role)}>
+                    {role}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem
+                  onClick={() => {
+                    const custom = prompt("Enter variant name (e.g. 'editor')");
+                    if (custom) handleAddVariant(custom);
+                  }}
+                >
+                  Custom...
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="space-y-2">
