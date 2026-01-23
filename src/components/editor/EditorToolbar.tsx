@@ -13,15 +13,25 @@ import {
   PanelLeft,
   PanelRight,
   FolderOpen,
-  ChevronLeft
+  ChevronLeft,
+  FileJson,
+  ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { useEditorStore } from "@/store/editorStore";
 import { LoadFlowModal } from "@/components/editor/LoadFlowModal";
 import { flowService } from "@/services/flowService";
 import { useFlowSave } from "@/hooks/useFlowSave";
+import { useReactFlow, getNodesBounds } from "@xyflow/react";
+import { toPng } from "html-to-image";
 
 interface EditorToolbarProps {
   flowName?: string;
@@ -30,6 +40,7 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
   const { saveFlow, isSaving } = useFlowSave();
+  const { getNodes } = useReactFlow();
 
   const {
     currentFlow,
@@ -63,7 +74,7 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
     }
   }, [saveFlow]);
 
-  const handleExport = useCallback(() => {
+  const handleExportJson = useCallback(() => {
     const json = getFlowJson();
     if (!json) return;
 
@@ -75,6 +86,42 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
     a.click();
     URL.revokeObjectURL(url);
   }, [getFlowJson, currentFlow?.name]);
+
+  const handleExportPng = useCallback(async () => {
+    const nodes = getNodes();
+    if (nodes.length === 0) return;
+
+    const nodesBounds = getNodesBounds(nodes);
+    const padding = 50;
+    const width = nodesBounds.width + padding * 2;
+    const height = nodesBounds.height + padding * 2;
+
+    const viewportElem = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!viewportElem) return;
+
+    const transform = `translate(${-(nodesBounds.x - padding)}px, ${-(nodesBounds.y - padding)}px) scale(1)`;
+
+    try {
+      const dataUrl = await toPng(viewportElem, {
+        backgroundColor: '#fff',
+        width: width,
+        height: height,
+        style: {
+          width: width.toString(),
+          height: height.toString(),
+          transform: transform,
+        },
+      });
+
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${currentFlow?.name || "flow"}.png`;
+      a.click();
+    } catch (err) {
+      console.error("Failed to export PNG:", err);
+      alert("Failed to export PNG.");
+    }
+  }, [getNodes, currentFlow?.name]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement("input");
@@ -215,15 +262,28 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
           </Button>
 
           {/* Export */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleExport}
-            title="Export JSON file"
-          >
-            <Download size={16} />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                title="Export"
+              >
+                <Download size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportJson}>
+                <FileJson className="mr-2 h-4 w-4" />
+                <span>Export as JSON</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPng}>
+                <ImageIcon className="mr-2 h-4 w-4" />
+                <span>Export as PNG</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Import */}
           <Button
