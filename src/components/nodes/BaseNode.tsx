@@ -40,7 +40,7 @@ function BaseNodeComponent({
       const dataUrl = await toPng(nodeRef.current, {
         cacheBust: true,
         backgroundColor: "white",
-        pixelRatio: 2,
+        pixelRatio: 1,
       });
 
       const url = new URL(window.location.href);
@@ -104,7 +104,7 @@ function BaseNodeComponent({
         </div>
         <button
           onClick={handleCopyForBasecamp}
-          className="p-1.5 -mr-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
+          className="p-1.5 mr-9 self-start rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
           title="Copy for Basecamp"
         >
           {isCopied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
