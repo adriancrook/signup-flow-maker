@@ -64,6 +64,7 @@ interface EditorState {
 
   // Node actions
   addNode: (screenPartial: Partial<Screen>, position: { x: number; y: number }, customId?: string) => string;
+  addNodes: (nodes: FlowNode[]) => void;
   updateNode: (nodeId: string, screenUpdates: Partial<Screen>) => void;
   updateSharedNode: (nodeId: string, screenUpdates: Partial<Screen>, componentCode: string) => Promise<void>;
   removeNode: (nodeId: string) => void;
@@ -71,6 +72,7 @@ interface EditorState {
 
   // Edge actions
   addEdge: (edge: FlowEdge) => void;
+  addEdges: (edges: FlowEdge[]) => void;
   removeEdge: (edgeId: string) => void;
   updateEdge: (edgeId: string, updates: Partial<FlowEdgeData>) => void;
 
@@ -592,6 +594,43 @@ export const useEditorStore = create<EditorState>()(
         return id;
       },
 
+      addNodes: (newNodes) => {
+        set((state) => {
+          newNodes.forEach((node) => {
+            state.nodes.push(node);
+            if (state.currentFlow) {
+              state.currentFlow.screens.push(node.data.screen as Screen);
+            }
+          });
+          state.isDirty = true;
+        });
+
+        // Sync shared components
+        const codesToSync = newNodes
+          .map((n) => (n.data.screen as any).componentCode)
+          .filter((c) => !!c);
+
+        if (codesToSync.length > 0) {
+          import("@/services/sharedComponentService").then(({ sharedComponentService }) => {
+            sharedComponentService.fetchOverrides(codesToSync).then((overrides) => {
+              overrides.forEach((override) => {
+                if (override.overrides) {
+                  // Find all nodes with this code (could be multiple if pasting multiple same components)
+                  const nodeIds = newNodes
+                    .filter((n) => (n.data.screen as any).componentCode === override.component_code)
+                    .map((n) => n.id);
+
+                  nodeIds.forEach((id) => {
+                    // We need to use deepmerge here ideally, but updateNode is available
+                    get().updateNode(id, override.overrides as Partial<Screen>);
+                  });
+                }
+              });
+            });
+          });
+        }
+      },
+
       // Update node
       updateNode: (nodeId, screenUpdates) => {
         set((state) => {
@@ -704,6 +743,24 @@ export const useEditorStore = create<EditorState>()(
               sourceScreen.nextScreenId = edge.target;
             }
           }
+          state.isDirty = true;
+        });
+      },
+
+      addEdges: (newEdges) => {
+        set((state) => {
+          newEdges.forEach((edge) => {
+            state.edges.push(edge);
+            // Update source screen's nextScreenId
+            if (edge.data?.isDefault) {
+              const sourceScreen = state.currentFlow?.screens.find(
+                (s) => s.id === edge.source
+              );
+              if (sourceScreen) {
+                sourceScreen.nextScreenId = edge.target;
+              }
+            }
+          });
           state.isDirty = true;
         });
       },

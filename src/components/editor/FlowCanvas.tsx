@@ -21,6 +21,8 @@ import { useComments } from "@/hooks/useComments";
 import { useFlowVisits } from "@/hooks/useFlowVisits";
 import { CommentsProvider } from "@/components/comments/CommentsContext";
 import { useFlowSave } from "@/hooks/useFlowSave";
+import { useCopyPaste } from "@/hooks/useCopyPaste";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface FlowCanvasProps {
   onNodeClick?: (nodeId: string) => void;
@@ -73,6 +75,10 @@ export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
     updateCommentMetadata
   } = useComments(currentFlow?.id || "");
   const { lastViewedAt } = useFlowVisits(currentFlow?.id || "");
+
+  // Copy/Paste and Undo/Redo
+  useCopyPaste({ createComment });
+  useKeyboardShortcuts();
 
   // 1. Lazy Migration: Move legacy sticky notes to DB
   useEffect(() => {
