@@ -163,7 +163,7 @@ export function useCopyPaste({ createComment }: UseCopyPasteProps) {
             source: newSource,
             target: newTarget,
             selected: false,
-        };
+        } as FlowEdge;
       }).filter((e): e is FlowEdge => e !== null);
 
 
