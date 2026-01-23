@@ -96,8 +96,29 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
     const width = nodesBounds.width + padding * 2;
     const height = nodesBounds.height + padding * 2;
 
-    const viewportElem = document.querySelector('.react-flow__viewport') as HTMLElement;
+    // Use a more specific selector to find the correct viewport
+    const viewportElem = document.querySelector('.react-flow__renderer .react-flow__viewport') as HTMLElement;
     if (!viewportElem) return;
+
+    // Workaround for missing edges:
+    // html-to-image sometimes fails to render SVGs if they rely on "100%" width/height
+    // but the container doesn't have explicit size during the clone.
+    // We temporarily force the SVG to match the export dimensions.
+    const edgeSvg = viewportElem.querySelector('.react-flow__edges') as SVGElement | null;
+    let originalWidth = '';
+    let originalHeight = '';
+
+    if (edgeSvg) {
+      originalWidth = edgeSvg.style.width;
+      originalHeight = edgeSvg.style.height;
+
+      // Set to 100% of the export size (which is what the clone will have)
+      // or just keep it 100%? The issue is usually that the clone's parent has 0 size.
+      // But we set `width` and `height` in options.
+      // Let's explicitly set pixels to match the full content.
+      edgeSvg.style.width = `${width}px`;
+      edgeSvg.style.height = `${height}px`;
+    }
 
     const transform = `translate(${-(nodesBounds.x - padding)}px, ${-(nodesBounds.y - padding)}px) scale(1)`;
 
@@ -106,6 +127,7 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
         backgroundColor: '#fff',
         width: width,
         height: height,
+        pixelRatio: 2, // Better quality
         style: {
           width: width.toString(),
           height: height.toString(),
@@ -120,6 +142,12 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
     } catch (err) {
       console.error("Failed to export PNG:", err);
       alert("Failed to export PNG.");
+    } finally {
+      // Restore SVG styles
+      if (edgeSvg) {
+        edgeSvg.style.width = originalWidth;
+        edgeSvg.style.height = originalHeight;
+      }
     }
   }, [getNodes, currentFlow?.name]);
 
