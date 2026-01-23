@@ -152,7 +152,7 @@ export const sharedComponentService = {
         }
 
         const validFlows = flows.filter(f => f.current_version_id);
-        const versionIds = validFlows.map(f => f.current_version_id);
+        const versionIds = validFlows.map(f => f.current_version_id as string);
 
         if (versionIds.length === 0) return [];
 
