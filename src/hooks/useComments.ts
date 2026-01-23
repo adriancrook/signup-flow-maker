@@ -78,7 +78,7 @@ export function useComments(flowId: string) {
             .eq('id', user.id)
             .single();
 
-        if (!profile) throw new Error("Profile not found");
+        if (!profile || !profile.organization_id) throw new Error("Profile or Organization not found");
 
         const { data: newComment, error } = await supabase.from('comments').insert({
             flow_id: flowId,

@@ -12,7 +12,7 @@ interface Profile {
     full_name: string | null;
     avatar_url: string | null;
     role: string | null;
-    organization_id: string;
+    organization_id: string | null;
     email?: string;
 }
 
@@ -45,6 +45,11 @@ export default function TeamPage() {
 
             if (profileError) throw profileError;
             setCurrentUser(currentProfile);
+
+            if (!currentProfile.organization_id) {
+                setProfiles([currentProfile]);
+                return;
+            }
 
             // Fetch all profiles in same org
             // Note: RLS allows this now

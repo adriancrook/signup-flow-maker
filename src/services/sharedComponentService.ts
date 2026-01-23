@@ -138,55 +138,14 @@ export const sharedComponentService = {
      * Find which flows are using a specific component code
      */
     async findComponentUsage(componentCode: string): Promise<{ flowId: string, flowName: string }[]> {
-        // Strategy: Fetch all flows and their current versions, then filter in memory.
-        // This avoids complex/brittle JSONB filtering in Postgres.
+        const { data, error } = await supabase
+            .rpc('get_flows_using_component', { p_component_code: componentCode });
 
-        // 1. Get all flows
-        const { data: flows, error: flowsError } = await supabase
-            .from("flows")
-            .select("id, name, current_version_id");
-
-        if (flowsError || !flows) {
-            console.error("Error fetching flows for usage check:", flowsError);
+        if (error) {
+            console.error("Error fetching component usage:", error);
             return [];
         }
 
-        const validFlows = flows.filter(f => f.current_version_id);
-        const versionIds = validFlows.map(f => f.current_version_id as string);
-
-        if (versionIds.length === 0) return [];
-
-        // 2. Fetch version data for all active versions
-        const { data: versions, error: versionsError } = await supabase
-            .from("flow_versions")
-            .select("id, data")
-            .in("id", versionIds);
-
-        if (versionsError || !versions) {
-            console.error("Error fetching versions for usage check:", versionsError);
-            return [];
-        }
-
-        // 3. Map version data back to flows and check for usage
-        const usage: { flowId: string, flowName: string }[] = [];
-
-        for (const flow of validFlows) {
-            const version = versions.find(v => v.id === flow.current_version_id);
-            if (!version || !version.data) continue;
-
-            const screens = (version.data as any).screens || [];
-            if (Array.isArray(screens)) {
-                // Check if any screen has the matching component code
-                const hasUsage = screens.some((s: any) => s.componentCode === componentCode);
-                if (hasUsage) {
-                    usage.push({
-                        flowId: flow.id,
-                        flowName: flow.name
-                    });
-                }
-            }
-        }
-
-        return usage;
+        return data || [];
     }
 };
