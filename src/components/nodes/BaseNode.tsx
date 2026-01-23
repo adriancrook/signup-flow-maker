@@ -2,7 +2,7 @@
 
 import { memo, type ReactNode, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Lock as LockIcon, Copy, Check } from "lucide-react";
+import { Lock as LockIcon, Check, Link, Image as ImageIcon } from "lucide-react";
 import { toPng } from "html-to-image";
 import { cn } from "@/lib/utils";
 import type { FlowNodeData } from "@/types/flow";
@@ -30,9 +30,10 @@ function BaseNodeComponent({
 }: BaseNodeProps) {
   const { screen, isValid, validationErrors } = data;
   const nodeRef = useRef<HTMLDivElement>(null);
-  const [isCopied, setIsCopied] = useState(false);
+  const [isImageCopied, setIsImageCopied] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
 
-  const handleCopyForBasecamp = async (e: React.MouseEvent) => {
+  const handleCopyImage = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!nodeRef.current) return;
 
@@ -41,28 +42,43 @@ function BaseNodeComponent({
         cacheBust: true,
         backgroundColor: "white",
         pixelRatio: 1,
+        filter: (node) => {
+          if (node.classList && node.classList.contains("exclude-from-capture")) {
+            return false;
+          }
+          return true;
+        },
       });
 
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob,
+        }),
+      ]);
+
+      setIsImageCopied(true);
+      setTimeout(() => setIsImageCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy node image:", err);
+    }
+  };
+
+  const handleCopyLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
       const url = new URL(window.location.href);
       url.searchParams.set("nodeId", screen.id);
       const linkUrl = url.toString();
 
-      const html = `<a href="${linkUrl}"><img src="${dataUrl}" alt="${screen.title}" /></a>`;
+      await navigator.clipboard.writeText(linkUrl);
 
-      const blob = new Blob([html], { type: "text/html" });
-      const textBlob = new Blob([linkUrl], { type: "text/plain" });
-
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          "text/html": blob,
-          "text/plain": textBlob,
-        }),
-      ]);
-
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      setIsLinkCopied(true);
+      setTimeout(() => setIsLinkCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy node:", err);
+      console.error("Failed to copy link:", err);
     }
   };
 
@@ -102,13 +118,22 @@ function BaseNodeComponent({
             {screen.title}
           </p>
         </div>
-        <button
-          onClick={handleCopyForBasecamp}
-          className="p-1.5 mr-9 self-start rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
-          title="Copy for Basecamp"
-        >
-          {isCopied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-        </button>
+        <div className="flex gap-1 mr-9 self-start exclude-from-capture">
+          <button
+            onClick={handleCopyImage}
+            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
+            title="Copy Image"
+          >
+            {isImageCopied ? <Check size={14} className="text-green-600" /> : <ImageIcon size={14} />}
+          </button>
+          <button
+            onClick={handleCopyLink}
+            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
+            title="Copy Link"
+          >
+            {isLinkCopied ? <Check size={14} className="text-green-600" /> : <Link size={14} />}
+          </button>
+        </div>
       </div>
 
       {/* Content */}
