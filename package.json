@@ -33,6 +33,7 @@
     "dagre": "^0.8.5",
     "date-fns": "^4.1.0",
     "deepmerge-ts": "^7.1.5",
+    "html-to-image": "^1.11.13",
     "immer": "^10.1.1",
     "lucide-react": "^0.468.0",
     "nanoid": "^5.0.9",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ReactFlow,
   Background,
@@ -29,6 +30,9 @@ interface FlowCanvasProps {
 
 export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
   const reactFlowInstance = useRef<ReactFlowInstance<FlowNode, FlowEdge> | null>(null);
+  const searchParams = useSearchParams();
+  const nodeId = searchParams.get('nodeId');
+  const processedNodeId = useRef<string | null>(null);
 
   const {
     nodes,
@@ -58,6 +62,24 @@ export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
       }
     });
   }, []);
+
+  // Deep linking logic
+  useEffect(() => {
+    if (
+      nodeId &&
+      nodeId !== processedNodeId.current &&
+      reactFlowInstance.current &&
+      nodes.some((n) => n.id === nodeId)
+    ) {
+      reactFlowInstance.current.fitView({
+        nodes: [{ id: nodeId }],
+        duration: 800,
+        padding: 0.2,
+      });
+      selectNode(nodeId);
+      processedNodeId.current = nodeId;
+    }
+  }, [nodeId, nodes, selectNode]);
 
   /* -------------------------------------------------------------------------- */
   /*                       Relational Sticky Notes Logic                        */

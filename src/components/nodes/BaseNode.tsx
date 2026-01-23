@@ -1,8 +1,9 @@
 "use client";
 
-import { memo, type ReactNode } from "react";
+import { memo, type ReactNode, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { Lock as LockIcon } from "lucide-react";
+import { Lock as LockIcon, Copy, Check } from "lucide-react";
+import { toPng } from "html-to-image";
 import { cn } from "@/lib/utils";
 import type { FlowNodeData } from "@/types/flow";
 
@@ -28,11 +29,48 @@ function BaseNodeComponent({
   sourceHandles,
 }: BaseNodeProps) {
   const { screen, isValid, validationErrors } = data;
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyForBasecamp = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!nodeRef.current) return;
+
+    try {
+      const dataUrl = await toPng(nodeRef.current, {
+        cacheBust: true,
+        backgroundColor: "white",
+        pixelRatio: 2,
+      });
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("nodeId", screen.id);
+      const linkUrl = url.toString();
+
+      const html = `<a href="${linkUrl}"><img src="${dataUrl}" alt="${screen.title}" /></a>`;
+
+      const blob = new Blob([html], { type: "text/html" });
+      const textBlob = new Blob([linkUrl], { type: "text/plain" });
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": blob,
+          "text/plain": textBlob,
+        }),
+      ]);
+
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy node:", err);
+    }
+  };
 
   return (
     <div
+      ref={nodeRef}
       className={cn(
-        "w-[280px] rounded-lg border-2 shadow-md transition-all",
+        "w-[280px] rounded-lg border-2 shadow-md transition-all bg-white",
         color,
         selected ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200",
         !isValid && "border-red-500"
@@ -64,6 +102,13 @@ function BaseNodeComponent({
             {screen.title}
           </p>
         </div>
+        <button
+          onClick={handleCopyForBasecamp}
+          className="p-1.5 -mr-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-colors"
+          title="Copy for Basecamp"
+        >
+          {isCopied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+        </button>
       </div>
 
       {/* Content */}
