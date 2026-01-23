@@ -131,7 +131,7 @@ export function DiscussionPanel({ flowId, nodeId, onClose, currentUserId, initia
                             key={comment.id}
                             comment={comment}
                             currentUserId={currentUserId}
-                            onReply={createComment}
+                            onReply={(content, parentId) => createComment(content, nodeId, parentId)}
                             onResolve={(id, status) => updateStatus(id, status)}
                             onDelete={deleteComment}
                             onEdit={editComment}
