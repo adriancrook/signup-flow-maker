@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -117,7 +118,7 @@ export default function EditorPage() {
         const START_X = 100;       // Left padding
         const START_Y = 80;        // Top padding
 
-        const screensWithPositions = flowData.screens.map((screen: any, index: number) => ({
+        const screensWithPositions = flowData.screens.map((screen: Record<string, unknown> & { position?: { x: number; y: number } }, index: number) => ({
           ...screen,
           position: screen.position || {
             x: START_X + (index % COLUMNS) * COLUMN_WIDTH,
@@ -176,9 +177,9 @@ export default function EditorPage() {
       <div className="h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <p className="text-red-600 mb-4">{loadError}</p>
-          <a href="/" className="text-blue-600 hover:underline">
+          <Link href="/" className="text-blue-600 hover:underline">
             Return to dashboard
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { UserMenu } from "@/components/layout/UserMenu";
+import Link from "next/link";
 import { useEditorStore } from "@/store/editorStore";
 import { LoadFlowModal } from "@/components/editor/LoadFlowModal";
 import { flowService } from "@/services/flowService";
@@ -219,9 +220,9 @@ export function EditorToolbar({ flowName, isReadOnly, comments = [] }: EditorToo
           asChild
           title="Back to Dashboard"
         >
-          <a href="/">
+          <Link href="/">
             <ChevronLeft size={16} />
-          </a>
+          </Link>
         </Button>
 
         <Separator orientation="vertical" className="h-6 mx-2" />
