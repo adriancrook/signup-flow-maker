@@ -1,17 +1,22 @@
 import { createContext, useContext } from 'react';
 import type { Database } from '@/types/supabase';
 
-type Comment = Database['public']['Tables']['comments']['Row'];
+type Comment = Database['public']['Tables']['comments']['Row'] & {
+    replies?: Comment[];
+    profiles?: { full_name: string | null; avatar_url: string | null; } | null;
+    metadata?: any;
+};
 
 interface CommentsContextType {
     comments: Comment[];
     lastViewedAt: string | null;
     currentUserId: string | null;
     isLoading: boolean;
-    createComment: (content: string, nodeId: string, parentId?: string) => Promise<void>;
+    createComment: (content: string, nodeId: string, parentId?: string, metadata?: any) => Promise<void>;
     updateStatus: (commentId: string, status: 'OPEN' | 'RESOLVED' | 'WONTFIX') => Promise<void>;
     deleteComment: (commentId: string) => Promise<void>;
     editComment: (commentId: string, content: string) => Promise<void>;
+    updateCommentMetadata: (commentId: string, updates: any) => Promise<void>;
 }
 
 const CommentsContext = createContext<CommentsContextType>({
@@ -22,7 +27,8 @@ const CommentsContext = createContext<CommentsContextType>({
     createComment: async () => { },
     updateStatus: async () => { },
     deleteComment: async () => { },
-    editComment: async () => { }
+    editComment: async () => { },
+    updateCommentMetadata: async () => { }
 });
 
 export const useCommentsContext = () => useContext(CommentsContext);

@@ -42,7 +42,7 @@ function BaseNodeComponent({
         cacheBust: true,
         backgroundColor: "white",
         pixelRatio: 1,
-        filter: (node) => {
+        filter: (node: any) => {
           if (node.classList && node.classList.contains("exclude-from-capture")) {
             return false;
           }

@@ -18,9 +18,8 @@ import { nodeTypes } from "@/components/nodes";
 import { DiscussionPanel } from "@/components/comments/DiscussionPanel";
 import type { Screen } from "@/types/flow";
 import { supabase } from "@/lib/supabase/client";
-import { useComments } from "@/hooks/useComments";
 import { useFlowVisits } from "@/hooks/useFlowVisits";
-import { CommentsProvider } from "@/components/comments/CommentsContext";
+import { useCommentsContext } from "@/components/comments/CommentsContext";
 import { useFlowSave } from "@/hooks/useFlowSave";
 import { useCopyPaste } from "@/hooks/useCopyPaste";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -95,7 +94,7 @@ export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
     deleteComment,
     editComment,
     updateCommentMetadata
-  } = useComments(currentFlow?.id || "");
+  } = useCommentsContext();
   const { lastViewedAt } = useFlowVisits(currentFlow?.id || "");
 
   // Copy/Paste and Undo/Redo
@@ -331,81 +330,70 @@ export function FlowCanvas({ onNodeClick, isReadOnly }: FlowCanvasProps) {
   }, []);
 
   return (
-    <CommentsProvider value={{
-      comments,
-      lastViewedAt,
-      currentUserId,
-      isLoading,
-      createComment,
-      updateStatus,
-      deleteComment,
-      editComment
-    }}>
-      <div className="w-full h-full relative">
-        <ReactFlow
-          nodes={nodes.map((n) => ({
-            ...n,
-            draggable: !isReadOnly || n.type === "STICKY-NOTE",
-            connectable: !isReadOnly,
-            deletable: !isReadOnly || n.type === "STICKY-NOTE",
-          }))}
-          edges={edges.map(e => ({ ...e, deletable: !isReadOnly }))}
-          onNodesChange={onNodesChange} // Enable for all; draggable/deletable props control specific node behavior
-          onEdgesChange={!isReadOnly ? onEdgesChange : undefined}
-          onConnect={!isReadOnly ? onConnect : undefined}
-          onNodeClick={handleNodeClick}
-          onEdgeClick={handleEdgeClick}
-          onPaneClick={handlePaneClick}
-          onDrop={handleDrop} // Logic inside handleDrop handles isReadOnly check
-          onDragOver={!isReadOnly || true ? handleDragOver : undefined} // Allow dragover for sticky notes too. Actually handleDragOver just sets dropEffect.
-          onNodeDragStop={handleDragStop} // Keep enabled to save position
-          onNodesDelete={onNodesDelete} // Keep enabled to allow deletion of allowed nodes (sticky notes)
-          onInit={(instance) => {
-            reactFlowInstance.current = instance as unknown as ReactFlowInstance<FlowNode, FlowEdge>;
-          }}
-          nodeTypes={nodeTypes}
-          fitView
-          snapToGrid
-          snapGrid={[15, 15]}
-          defaultEdgeOptions={{
-            type: "smoothstep",
-            style: { strokeWidth: 2 },
-          }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={15} size={1} />
-          <Controls />
-          <MiniMap
-            nodeStrokeWidth={3}
-            zoomable
-            pannable
-            className="bg-white/80 rounded-lg shadow-lg"
+    <div className="w-full h-full relative">
+      <ReactFlow
+        nodes={nodes.map((n) => ({
+          ...n,
+          draggable: !isReadOnly || n.type === "STICKY-NOTE",
+          connectable: !isReadOnly,
+          deletable: !isReadOnly || n.type === "STICKY-NOTE",
+        }))}
+        edges={edges.map(e => ({ ...e, deletable: !isReadOnly }))}
+        onNodesChange={onNodesChange} // Enable for all; draggable/deletable props control specific node behavior
+        onEdgesChange={!isReadOnly ? onEdgesChange : undefined}
+        onConnect={!isReadOnly ? onConnect : undefined}
+        onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
+        onPaneClick={handlePaneClick}
+        onDrop={handleDrop} // Logic inside handleDrop handles isReadOnly check
+        onDragOver={!isReadOnly || true ? handleDragOver : undefined} // Allow dragover for sticky notes too. Actually handleDragOver just sets dropEffect.
+        onNodeDragStop={handleDragStop} // Keep enabled to save position
+        onNodesDelete={onNodesDelete} // Keep enabled to allow deletion of allowed nodes (sticky notes)
+        onInit={(instance) => {
+          reactFlowInstance.current = instance as unknown as ReactFlowInstance<FlowNode, FlowEdge>;
+        }}
+        nodeTypes={nodeTypes}
+        fitView
+        snapToGrid
+        snapGrid={[15, 15]}
+        defaultEdgeOptions={{
+          type: "smoothstep",
+          style: { strokeWidth: 2 },
+        }}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={15} size={1} />
+        <Controls />
+        <MiniMap
+          nodeStrokeWidth={3}
+          zoomable
+          pannable
+          className="bg-white/80 rounded-lg shadow-lg"
+        />
+
+        {/* Discussion Panel managed by global store */}
+        {activeDiscussionNodeId && currentFlow && (
+          <DiscussionPanel
+            flowId={currentFlow.id}
+            nodeId={activeDiscussionNodeId}
+            onClose={closeDiscussion}
+            currentUserId={currentUserId}
+            initialPosition={panelPosition}
           />
+        )}
 
-          {/* Discussion Panel managed by global store */}
-          {activeDiscussionNodeId && currentFlow && (
-            <DiscussionPanel
-              flowId={currentFlow.id}
-              nodeId={activeDiscussionNodeId}
-              onClose={closeDiscussion}
-              currentUserId={currentUserId}
-              initialPosition={panelPosition}
-            />
-          )}
-
-          {/* Empty state */}
-          {nodes.length === 0 && (
-            <Panel position="top-center" className="mt-20">
-              <div className="text-center text-gray-500 bg-white/90 rounded-lg p-6 shadow-lg">
-                <p className="text-lg font-medium mb-2">No screens yet</p>
-                <p className="text-sm">
-                  Drag components from the library to start building your flow
-                </p>
-              </div>
-            </Panel>
-          )}
-        </ReactFlow>
-      </div>
-    </CommentsProvider>
+        {/* Empty state */}
+        {nodes.length === 0 && (
+          <Panel position="top-center" className="mt-20">
+            <div className="text-center text-gray-500 bg-white/90 rounded-lg p-6 shadow-lg">
+              <p className="text-lg font-medium mb-2">No screens yet</p>
+              <p className="text-sm">
+                Drag components from the library to start building your flow
+              </p>
+            </div>
+          </Panel>
+        )}
+      </ReactFlow>
+    </div>
   );
 }

@@ -13,6 +13,9 @@ import { ComponentLibrary } from "@/components/panels/ComponentLibrary";
 import { PropertiesPanel } from "@/components/panels/PropertiesPanel";
 import { FlowPreview } from "@/components/preview/FlowPreview";
 import { blueprints } from "@/data/blueprints";
+import { useComments } from "@/hooks/useComments";
+import { useFlowVisits } from "@/hooks/useFlowVisits";
+import { CommentsProvider } from "@/components/comments/CommentsContext";
 
 // Flow metadata for display
 const flowMeta: Record<string, { name: string; category: "individual" | "educator" }> = {
@@ -41,6 +44,27 @@ export default function EditorPage() {
     rightPanelOpen,
     previewMode,
   } = useEditorStore();
+
+  const {
+    comments,
+    isLoading: commentsLoading,
+    createComment,
+    updateStatus,
+    deleteComment,
+    editComment,
+    updateCommentMetadata
+  } = useComments(currentFlow?.id || "");
+  const { lastViewedAt } = useFlowVisits(currentFlow?.id || "");
+
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        setCurrentUserId(data.user.id);
+      }
+    });
+  }, []);
 
   // Load flow on mount
   useEffect(() => {
@@ -163,27 +187,43 @@ export default function EditorPage() {
   return (
     <ReactFlowProvider>
       <div className="h-screen flex flex-col bg-gray-100">
-        <EditorToolbar flowName={currentFlow?.name || meta?.name} isReadOnly={userRole === 'viewer'} />
+        <EditorToolbar
+          flowName={currentFlow?.name || meta?.name}
+          isReadOnly={userRole === 'viewer'}
+          comments={comments}
+        />
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Panel - Component Library */}
-          {leftPanelOpen && (
-            <div className="w-72 flex-shrink-0">
-              <ComponentLibrary flowCategory={currentFlow?.category} isReadOnly={userRole === 'viewer'} />
-            </div>
-          )}
+          <CommentsProvider value={{
+            comments,
+            lastViewedAt,
+            currentUserId,
+            isLoading: commentsLoading,
+            createComment,
+            updateStatus,
+            deleteComment,
+            editComment,
+            updateCommentMetadata
+          }}>
+            {/* Left Panel - Component Library */}
+            {leftPanelOpen && (
+              <div className="w-72 flex-shrink-0">
+                <ComponentLibrary flowCategory={currentFlow?.category} isReadOnly={userRole === 'viewer'} />
+              </div>
+            )}
 
-          {/* Canvas */}
-          <div className="flex-1 relative">
-            <FlowCanvas isReadOnly={userRole === 'viewer'} />
-          </div>
-
-          {/* Right Panel - Properties */}
-          {rightPanelOpen && (
-            <div className="w-80 flex-shrink-0">
-              <PropertiesPanel isReadOnly={userRole === 'viewer'} />
+            {/* Canvas */}
+            <div className="flex-1 relative">
+              <FlowCanvas isReadOnly={userRole === 'viewer'} />
             </div>
-          )}
+
+            {/* Right Panel - Properties */}
+            {rightPanelOpen && (
+              <div className="w-80 flex-shrink-0">
+                <PropertiesPanel isReadOnly={userRole === 'viewer'} />
+              </div>
+            )}
+          </CommentsProvider>
         </div>
 
         {/* Preview Mode Overlay */}

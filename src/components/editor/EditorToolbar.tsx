@@ -15,7 +15,8 @@ import {
   FolderOpen,
   ChevronLeft,
   FileJson,
-  ImageIcon
+  ImageIcon,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +25,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { useEditorStore } from "@/store/editorStore";
@@ -32,18 +34,28 @@ import { flowService } from "@/services/flowService";
 import { useFlowSave } from "@/hooks/useFlowSave";
 import { useReactFlow, getNodesBounds } from "@xyflow/react";
 import { toPng } from "html-to-image";
+import { Database } from "@/types/supabase";
+import { generateCommentExport } from "@/lib/commentUtils";
+
+type Comment = Database['public']['Tables']['comments']['Row'] & {
+  replies?: Comment[];
+  profiles?: { full_name: string | null; avatar_url: string | null; } | null;
+  metadata?: any;
+};
 
 interface EditorToolbarProps {
   flowName?: string;
   isReadOnly?: boolean;
+  comments?: Comment[];
 }
 
-export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
+export function EditorToolbar({ flowName, isReadOnly, comments = [] }: EditorToolbarProps) {
   const { saveFlow, isSaving } = useFlowSave();
   const { getNodes } = useReactFlow();
 
   const {
     currentFlow,
+    nodes, // Need nodes for export report
     isDirty,
     leftPanelOpen,
     rightPanelOpen,
@@ -150,6 +162,23 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
       }
     }
   }, [getNodes, currentFlow?.name]);
+
+  const handleExportComments = useCallback(() => {
+    if (!currentFlow || comments.length === 0) {
+      alert("No comments to export.");
+      return;
+    }
+
+    const report = generateCommentExport(currentFlow.id, currentFlow.name, comments, nodes);
+
+    const blob = new Blob([report], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentFlow.name}-comments.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [currentFlow, comments, nodes]);
 
   const handleImport = useCallback(() => {
     const input = document.createElement("input");
@@ -309,6 +338,11 @@ export function EditorToolbar({ flowName, isReadOnly }: EditorToolbarProps) {
               <DropdownMenuItem onClick={handleExportPng}>
                 <ImageIcon className="mr-2 h-4 w-4" />
                 <span>Export as PNG</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleExportComments}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                <span>Export Comments</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
