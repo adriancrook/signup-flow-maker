@@ -47,6 +47,16 @@ export function ScreenRenderer({
     case "gatekeeper": // Legacy
     case "question": // Legacy
     case "discovery": // Legacy (consolidated to MC)
+      if ((screen as MultipleChoiceScreen).allowMultiSelect) {
+        return (
+          <MultiSelectRenderer
+            screen={screen as unknown as MultiSelectScreen}
+            interpolate={interpolate}
+            onSetVariable={onSetVariable}
+            onNext={() => onNext()}
+          />
+        );
+      }
       return (
         <QuestionRenderer
           screen={screen as unknown as MultipleChoiceScreen}

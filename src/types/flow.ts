@@ -153,6 +153,8 @@ export interface MultipleChoiceScreen extends BaseScreen {
   roleVariable?: string;
   variants?: Record<string, QuestionVariant>;
   defaultVariant?: string;
+  // Settings
+  allowMultiSelect?: boolean;
 }
 
 // Multi-Select Screen (MS)

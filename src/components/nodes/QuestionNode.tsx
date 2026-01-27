@@ -9,7 +9,11 @@ import type { FlowNodeData, MultipleChoiceScreen, MultiSelectScreen } from "@/ty
 function QuestionNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FlowNodeData;
   const screen = nodeData.screen as MultipleChoiceScreen | MultiSelectScreen;
-  const isMultiSelect = screen.type === "MS";
+
+  // Determine if multi-select mode is active (either native MS type or MC with toggle)
+  const isMultiSelect =
+    screen.type === "MS" ||
+    (screen.type === "MC" && !!(screen as MultipleChoiceScreen).allowMultiSelect);
 
   // Check if this question has role-based variants (only MultipleChoiceScreen supports this)
   const hasVariants =

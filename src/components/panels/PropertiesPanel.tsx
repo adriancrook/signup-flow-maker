@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -739,6 +740,21 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
             Default Content
           </h3>
         </div>
+
+        {screen.type === "MC" && (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div className="space-y-0.5">
+              <Label className="text-xs font-medium">Allow Multiple Selection</Label>
+              <p className="text-[10px] text-gray-500">
+                Users can select more than one option
+              </p>
+            </div>
+            <Switch
+              checked={(screen as MultipleChoiceScreen).allowMultiSelect || false}
+              onCheckedChange={(checked) => onUpdate({ allowMultiSelect: checked } as any)}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="question" className="text-xs">
