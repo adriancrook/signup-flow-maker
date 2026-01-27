@@ -87,6 +87,9 @@ export function generateCommentExport(flowId: string, flowName: string, comments
         const link = `${origin}/editor/${flowId}?nodeId=${nodeId}`;
 
         lines.push(`## ${screenName}`);
+        if (node?.data?.screen?.componentCode) {
+            lines.push(`**Codename**: \`${node.data.screen.componentCode}\``);
+        }
         lines.push(`[Go to Screen](${link})`);
         lines.push('');
 
