@@ -183,7 +183,7 @@ export interface TypingTestScreen extends BaseScreen {
   minDuration?: number;
   variableBindings: {
     wpm: string;
-    accuracy?: string;
+    accuracy: string;
   };
 }
 

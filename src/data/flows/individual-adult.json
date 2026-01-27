@@ -133,7 +133,7 @@
       "testText": "The quick brown fox jumps over the lazy dog.",
       "variableBindings": {
         "wpm": "currentWpm",
-        "accuracy": "currentAccuracy"
+        "accuracy": "acc"
       }
     },
     {

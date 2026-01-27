@@ -2341,14 +2341,14 @@ function TypingTestFields({ screen, onUpdate, isLocked }: TypingTestFieldsProps)
 
       <div className="space-y-2">
         <Label htmlFor="accuracyVariable" className="text-xs">
-          Accuracy Variable (optional)
+          Accuracy Variable
         </Label>
         <Input
           id="accuracyVariable"
-          value={screen.variableBindings.accuracy || ""}
+          value={screen.variableBindings.accuracy}
           onChange={(e) =>
             onUpdate({
-              variableBindings: { ...screen.variableBindings, accuracy: e.target.value || undefined },
+              variableBindings: { ...screen.variableBindings, accuracy: e.target.value },
             })
           }
           className="h-8 text-sm"

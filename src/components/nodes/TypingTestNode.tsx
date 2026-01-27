@@ -30,11 +30,9 @@ function TypingTestNodeComponent({ data, selected }: NodeProps) {
           <span className="text-[10px] bg-cyan-100 text-cyan-700 rounded px-1.5 py-0.5">
             WPM → {screen.variableBindings.wpm}
           </span>
-          {screen.variableBindings.accuracy && (
-            <span className="text-[10px] bg-cyan-100 text-cyan-700 rounded px-1.5 py-0.5">
-              Accuracy → {screen.variableBindings.accuracy}
-            </span>
-          )}
+          <span className="text-[10px] bg-cyan-100 text-cyan-700 rounded px-1.5 py-0.5">
+            Accuracy → {screen.variableBindings.accuracy}
+          </span>
         </div>
 
         {screen.minDuration && (

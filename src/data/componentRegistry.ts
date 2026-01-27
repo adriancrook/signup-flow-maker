@@ -173,6 +173,7 @@ export const componentRegistry: ComponentTemplate[] = [
       minDuration: 0,
       variableBindings: {
         wpm: "currentWpm",
+        accuracy: "acc",
       },
     },
   },
