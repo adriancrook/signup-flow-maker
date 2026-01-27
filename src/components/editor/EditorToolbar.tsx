@@ -17,6 +17,7 @@ import {
   FileJson,
   ImageIcon,
   MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -30,6 +31,7 @@ import {
 import { UserMenu } from "@/components/layout/UserMenu";
 import Link from "next/link";
 import { useEditorStore } from "@/store/editorStore";
+import { usePreviewStore } from "@/store/previewStore";
 import { LoadFlowModal } from "@/components/editor/LoadFlowModal";
 import { flowService } from "@/services/flowService";
 import { useFlowSave } from "@/hooks/useFlowSave";
@@ -57,6 +59,7 @@ export function EditorToolbar({ flowName, isReadOnly, comments = [] }: EditorToo
   const {
     currentFlow,
     nodes, // Need nodes for export report
+    selectedNodeId,
     isDirty,
     leftPanelOpen,
     rightPanelOpen,
@@ -362,17 +365,52 @@ export function EditorToolbar({ flowName, isReadOnly, comments = [] }: EditorToo
 
           <Separator orientation="vertical" className="h-6 mx-2" />
 
-          {/* Preview */}
-          <Button
-            variant={previewMode ? "secondary" : "outline"} // Distinct from primary save
-            size="sm"
-            className="h-8 gap-1.5"
-            onClick={togglePreviewMode}
-          >
-            <Play size={14} />
-            <span className="text-sm">Preview</span>
-          </Button>
-        </div >
+          {/* Preview Split Button */}
+          <div className="flex items-center rounded-md border shadow-sm">
+            <Button
+              variant={previewMode ? "secondary" : "outline"}
+              size="sm"
+              className="h-8 gap-1.5 rounded-r-none border-r-0 px-3"
+              onClick={togglePreviewMode}
+              title="Preview from Start"
+            >
+              <Play size={14} />
+              <span className="text-sm">Preview</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={previewMode ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-8 w-6 px-0 rounded-l-none"
+                  title="Preview Options"
+                >
+                  <ChevronDown size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={togglePreviewMode}>
+                  <Play className="mr-2 h-4 w-4" />
+                  <span>Preview from Start</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!selectedNodeId}
+                  onClick={() => {
+                    if (selectedNodeId) {
+                      usePreviewStore.getState().startPreview(selectedNodeId);
+                      if (!previewMode) {
+                        togglePreviewMode();
+                      }
+                    }
+                  }}
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  <span>Preview from Selected</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         <Separator orientation="vertical" className="h-6" />
 
