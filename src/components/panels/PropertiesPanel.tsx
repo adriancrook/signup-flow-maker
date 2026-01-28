@@ -804,6 +804,25 @@ function QuestionFields({ screen, onUpdate, isLocked, availableVariables, variab
     onUpdate({ variants: newVariants });
   };
 
+  const handleRenameVariant = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey || !(screen as MultipleChoiceScreen).variants) return;
+
+    // Prevent overwriting existing keys
+    if ((screen as MultipleChoiceScreen).variants![newKey]) {
+      return;
+    }
+
+    const newVariants: Record<string, QuestionVariant> = {};
+    for (const [k, v] of Object.entries((screen as MultipleChoiceScreen).variants!)) {
+      newVariants[k === oldKey ? newKey : k] = v;
+    }
+    const updates: Partial<MultipleChoiceScreen> = { variants: newVariants };
+    if ((screen as MultipleChoiceScreen).defaultVariant === oldKey) {
+      updates.defaultVariant = newKey;
+    }
+    onUpdate(updates);
+  };
+
   return (
     <div className="space-y-6">
       {/* Defaults Section */}
@@ -907,6 +926,7 @@ function QuestionFields({ screen, onUpdate, isLocked, availableVariables, variab
             onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
             onAddVariant={handleAddVariant}
             onRemoveVariant={handleRemoveVariant}
+            onRenameVariant={handleRenameVariant}
             availableVariables={availableVariables}
             variableValues={variableValues}
             renderVariantContent={(key: string) => {
@@ -1414,11 +1434,8 @@ function MessageFields({ screen, onUpdate, isLocked, availableVariables, variabl
   const handleRenameVariant = (oldKey: string, newKey: string) => {
     if (oldKey === newKey || !screen.variants) return;
 
-    // Prevent overwriting existing keys
-    if (screen.variants[newKey]) {
-      // Here you might want to show an error toast, but for now just returning prevents corruption
-      return;
-    }
+    // Note: Duplicate keys are allowed for IF/AND IF conditional logic
+    // When multiple variants share the same key, they are differentiated by nested conditions
 
     const newVariants: Record<string, MessageVariant> = {};
     for (const [k, v] of Object.entries(screen.variants)) {
@@ -1988,6 +2005,7 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
         onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
         onAddVariant={handleAddVariant}
         onRemoveVariant={handleRemoveVariant}
+        onRenameVariant={handleRenameVariant}
         availableVariables={availableVariables}
         renderVariantContent={(key: string) => {
           const variant = screen.variants?.[key];
@@ -2163,6 +2181,25 @@ function PaywallFields({ screen, onUpdate, isLocked, availableVariables, variabl
     onUpdate({ variants: newVariants });
   };
 
+  const handleRenameVariant = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey || !screen.variants) return;
+
+    // Prevent overwriting existing keys
+    if (screen.variants[newKey]) {
+      return;
+    }
+
+    const newVariants: Record<string, PaywallVariant> = {};
+    for (const [k, v] of Object.entries(screen.variants)) {
+      newVariants[k === oldKey ? newKey : k] = v;
+    }
+    const updates: Partial<PaywallScreen> = { variants: newVariants };
+    if (screen.defaultVariant === oldKey) {
+      updates.defaultVariant = newKey;
+    }
+    onUpdate(updates);
+  };
+
   return (
     <div className="space-y-4">
       {/* Defaults Section */}
@@ -2238,8 +2275,8 @@ function PaywallFields({ screen, onUpdate, isLocked, availableVariables, variabl
         onUpdateVariable={(val: string) => onUpdate({ roleVariable: val })}
         onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
         onAddVariant={handleAddVariant}
-
         onRemoveVariant={handleRemoveVariant}
+        onRenameVariant={handleRenameVariant}
         availableVariables={availableVariables}
         variableValues={variableValues}
         renderVariantContent={(key: string) => {

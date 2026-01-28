@@ -186,8 +186,8 @@ export function SmartVariantsSection({
 
                 {/* Rules List - Minimal (Flattened) */}
                 <div className="space-y-2 mt-2">
-                    {variantKeys.map((key) => (
-                        <div key={key} className="relative">
+                    {variantKeys.map((key, index) => (
+                        <div key={`variant-${index}`} className="relative">
                             <div className="flex items-center gap-2 mb-2 px-1">
                                 <span className="text-xs font-bold text-blue-600 whitespace-nowrap">And if</span>
                                 <Input
@@ -226,6 +226,19 @@ export function SmartVariantsSection({
                             </div>
                         </div>
                     ))}
+
+                    {/* Add AND IF button */}
+                    {onAddVariant && !isLocked && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full h-7 text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 border border-dashed border-blue-200"
+                            onClick={onAddVariant}
+                        >
+                            <Plus size={12} className="mr-1" />
+                            Add AND IF condition
+                        </Button>
+                    )}
                 </div>
             </div>
         );
@@ -270,7 +283,7 @@ export function SmartVariantsSection({
 
             <div className="space-y-3 pt-2">
                 {variantKeys.map((key, index) => (
-                    <div key={key} className="bg-white rounded-md border border-blue-100 shadow-sm overflow-hidden">
+                    <div key={`variant-${index}`} className="bg-white rounded-md border border-blue-100 shadow-sm overflow-hidden">
                         {/* Logic Header: "If [var] matches [value]" */}
                         <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/50 border-b border-blue-100">
                             <span className="text-xs font-bold text-blue-600">If</span>

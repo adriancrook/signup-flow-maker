@@ -338,11 +338,8 @@ export const useEditorStore = create<EditorState>()(
         const syncedScreens = flow.screens.map(screen => {
           const code = screen.componentCode;
           if (code && overridesMap[code]) {
-            // Deep merge or shallow merge? Shallow for now, but sensitive props like variants need care.
-            // For variants, we probably want to replace them if they exist in override.
-            // FIX: Use deepmerge to safely combine local default properties with remote overrides
-            // We use customDeepmerge with mergeArrays: false to prevent duplicating list items.
-            return customDeepmerge(screen, overridesMap[code]) as Screen;
+            const merged = customDeepmerge(screen, overridesMap[code]) as Screen;
+            return merged;
           }
           return screen;
         });
@@ -360,7 +357,6 @@ export const useEditorStore = create<EditorState>()(
 
       // Update shared node (New Action)
       updateSharedNode: async (nodeId, screenUpdates, componentCode) => {
-        console.log(`[DEBUG] updateSharedNode ENTRY - NodeId: ${nodeId}, Code: ${componentCode}`);
         // 1. Update local state immediately
         // This merges the updates into the current node state
         get().updateNode(nodeId, screenUpdates);
@@ -371,9 +367,7 @@ export const useEditorStore = create<EditorState>()(
         try {
           const state = get();
           const node = state.nodes.find(n => n.id === nodeId);
-          console.log(`[DEBUG] updateSharedNode - Node Found? ${!!node}`);
           if (!node) {
-            console.error("[DEBUG] updateSharedNode - Node NOT found in store!");
             return;
           }
 
