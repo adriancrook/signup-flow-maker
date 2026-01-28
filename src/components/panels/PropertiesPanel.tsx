@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
-import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag, ArrowRight, Save, Unlink } from "lucide-react";
+import { useCallback, useState, useEffect, useMemo } from "react";
+
+import { Trash2, Copy, Plus, GripVertical, X, Lock, Unlock, Flag, ArrowRight, Save, Unlink, CornerDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ import type {
 import { nanoid } from "nanoid";
 import { componentTemplates } from "@/data/componentRegistry";
 import { getComponentAvailability } from "@/lib/componentUtils";
+import { SmartVariantsSection } from "./SmartVariantsSection";
 
 interface PropertiesPanelProps {
   isReadOnly?: boolean;
@@ -56,6 +58,43 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
   const { updateNode, updateSharedNode, removeNode, duplicateNode, setEntryScreen } = useEditorStore();
   const [usageList, setUsageList] = useState<{ flowId: string, flowName: string }[]>([]);
   const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+
+  // Derive all available variables from the flow
+  const { availableVariables, variableValues } = useMemo(() => {
+    if (!currentFlow) return { availableVariables: [], variableValues: {} };
+
+    const vars = new Set<string>();
+    const valuesMap: Record<string, string[]> = {};
+
+    // 1. Add explicitly defined variables (if any)
+    currentFlow.variables?.forEach(v => vars.add(v.name));
+
+    // 2. Scan screens for variable bindings
+    currentFlow.screens.forEach(screen => {
+      if ('variableBinding' in screen && (screen as any).variableBinding) {
+        const binding = (screen as any).variableBinding as string;
+        vars.add(binding);
+
+        // Collect values from MC/MS screens
+        if ((screen.type === 'MC' || screen.type === 'MS') && 'options' in screen) {
+          const opts = (screen as MultipleChoiceScreen).options;
+          if (opts) {
+            if (!valuesMap[binding]) valuesMap[binding] = [];
+            opts.forEach(o => {
+              if (!valuesMap[binding].includes(o.value)) {
+                valuesMap[binding].push(o.value);
+              }
+            });
+          }
+        }
+      }
+    });
+
+    return {
+      availableVariables: Array.from(vars).sort(),
+      variableValues: valuesMap
+    };
+  }, [currentFlow]);
 
   useEffect(() => {
     if (selectedScreen?.componentCode) {
@@ -472,7 +511,13 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
 
             {/* Type-specific fields */}
             <div>
-              <ScreenTypeFields screen={selectedScreen} onUpdate={handleUpdate} isLocked={!!isLocked} />
+              <ScreenTypeFields
+                screen={selectedScreen}
+                onUpdate={handleUpdate}
+                isLocked={!!isLocked}
+                availableVariables={availableVariables}
+                variableValues={variableValues}
+              />
             </div>
           </TabsContent>
 
@@ -559,15 +604,17 @@ interface ScreenTypeFieldsProps {
   screen: Screen;
   isLocked: boolean;
   onUpdate: (updates: Partial<Screen>) => void;
+  availableVariables: string[];
+  variableValues: Record<string, string[]>;
 }
 
-function ScreenTypeFields({ screen, onUpdate, isLocked }: ScreenTypeFieldsProps) {
+function ScreenTypeFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: ScreenTypeFieldsProps) {
   switch (screen.type) {
     case "MC":
-      return <QuestionFields screen={screen as MultipleChoiceScreen} onUpdate={onUpdate} isLocked={isLocked} />;
+      return <QuestionFields screen={screen as MultipleChoiceScreen} onUpdate={onUpdate} isLocked={isLocked} availableVariables={availableVariables} variableValues={variableValues} />;
 
     case "MS":
-      return <QuestionFields screen={screen as MultiSelectScreen} onUpdate={onUpdate} isLocked={isLocked} />;
+      return <QuestionFields screen={screen as MultiSelectScreen} onUpdate={onUpdate} isLocked={isLocked} availableVariables={availableVariables} variableValues={variableValues} />;
 
     case "TXT":
     case "NUM":
@@ -575,22 +622,46 @@ function ScreenTypeFields({ screen, onUpdate, isLocked }: ScreenTypeFieldsProps)
 
     case "INT":
       return (
-        <InterstitialFields screen={screen as InterstitialScreen} onUpdate={onUpdate} isLocked={isLocked} />
+        <InterstitialFields
+          screen={screen as InterstitialScreen}
+          onUpdate={onUpdate}
+          isLocked={isLocked}
+          availableVariables={availableVariables}
+          variableValues={variableValues}
+        />
       );
 
     case "MSG":
       return (
-        <MessageFields screen={screen as MessageScreen} onUpdate={onUpdate} isLocked={isLocked} />
+        <MessageFields
+          screen={screen as MessageScreen}
+          onUpdate={onUpdate}
+          isLocked={isLocked}
+          availableVariables={availableVariables}
+          variableValues={variableValues}
+        />
       );
 
     case "FORM":
       return (
-        <FormFields screen={screen as FormScreen} onUpdate={onUpdate} isLocked={isLocked} />
+        <FormFields
+          screen={screen as FormScreen}
+          onUpdate={onUpdate}
+          isLocked={isLocked}
+          availableVariables={availableVariables}
+          variableValues={variableValues}
+        />
       );
 
     case "PAY":
       return (
-        <PaywallFields screen={screen as PaywallScreen} onUpdate={onUpdate} isLocked={isLocked} />
+        <PaywallFields
+          screen={screen as PaywallScreen}
+          onUpdate={onUpdate}
+          isLocked={isLocked}
+          availableVariables={availableVariables}
+          variableValues={variableValues}
+        />
       );
 
     case "TEST":
@@ -620,9 +691,11 @@ interface QuestionFieldsProps {
   screen: MultipleChoiceScreen | MultiSelectScreen;
   isLocked: boolean;
   onUpdate: (updates: Partial<MultipleChoiceScreen>) => void;
+  availableVariables: string[];
+  variableValues?: Record<string, string[]>;
 }
 
-function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
+function QuestionFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: QuestionFieldsProps) {
   // Variant mode is available for MC and MS types
   const supportsVariants = true;
   const variantKeys = Object.keys((screen as MultipleChoiceScreen).variants || {});
@@ -823,100 +896,27 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
 
       <Separator />
 
-      {/* Variants Section */}
       {supportsVariants && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Role-Based Variants
-              </h3>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={isLocked}
-                >
-                  <Plus size={12} className="mr-1" />
-                  Add Variant
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {STANDARD_ROLES.map((role) => (
-                  <DropdownMenuItem key={role} onClick={() => handleAddVariant(role)}>
-                    {role}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuItem
-                  onClick={() => {
-                    const custom = prompt("Enter variant name (e.g. 'editor')");
-                    if (custom) handleAddVariant(custom);
-                  }}
-                >
-                  Custom...
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="roleVariable" className="text-xs text-gray-500">
-              Role Variable
-            </Label>
-            <Input
-              id="roleVariable"
-              value={(screen as MultipleChoiceScreen).roleVariable || "role"}
-              onChange={(e) => onUpdate({ roleVariable: e.target.value })}
-              className="h-8 text-sm"
-              placeholder="role"
-              disabled={isLocked}
-            />
-          </div>
-
-          {variantKeys.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
-                Default Variant (Fallback)
-              </Label>
-              <select
-                id="defaultVariant"
-                value={(screen as MultipleChoiceScreen).defaultVariant || ""}
-                onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
-                className="w-full h-8 px-2 text-sm border rounded-md"
-                disabled={isLocked}
-              >
-                <option value="">None (Use Default Content)</option>
-                {variantKeys.map((key) => (
-                  <option key={key} value={key}>
-                    {key}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="space-y-4 pt-2">
-            {variantKeys.map((key) => {
+        <>
+          <SmartVariantsSection
+            isLocked={isLocked}
+            variantKeys={variantKeys}
+            activeVariable={(screen as MultipleChoiceScreen).roleVariable || ""}
+            defaultVariant={(screen as MultipleChoiceScreen).defaultVariant}
+            onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
+            onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+            onAddVariant={handleAddVariant}
+            onRemoveVariant={handleRemoveVariant}
+            availableVariables={availableVariables}
+            variableValues={variableValues}
+            renderVariantContent={(key) => {
               const variant = (screen as MultipleChoiceScreen).variants?.[key];
               if (!variant) return null;
               return (
-                <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-gray-700 bg-white px-2 py-0.5 rounded border">{key}</p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-gray-400 hover:text-red-500"
-                      onClick={() => handleRemoveVariant(key)}
-                      disabled={isLocked}
-                    >
-                      <X size={12} />
-                    </Button>
+                <div className="space-y-3">
+                  <div className="mb-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Then Show:</span>
                   </div>
-
                   <Input
                     value={variant.question || ""}
                     onChange={(e) =>
@@ -931,7 +931,6 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
                     placeholder="Question override (optional)"
                     disabled={isLocked}
                   />
-
                   <div className="space-y-1">
                     {variant.options.map((option, index) => (
                       <div key={option.id} className="flex items-center gap-1">
@@ -965,15 +964,9 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
                   </div>
                 </div>
               );
-            })}
-
-            {variantKeys.length === 0 && (
-              <div className="text-center p-4 border border-dashed rounded-md text-gray-400 text-xs">
-                No variants added yet.
-              </div>
-            )}
-          </div>
-        </div>
+            }}
+          />
+        </>
       )}
 
       {screen.variableBinding !== undefined && (
@@ -991,6 +984,18 @@ function QuestionFields({ screen, onUpdate, isLocked }: QuestionFieldsProps) {
               placeholder="variableName"
               disabled={isLocked}
             />
+            {((screen.type === "MC" && (screen as MultipleChoiceScreen).allowMultiSelect) || screen.type === "MS") && screen.variableBinding && (
+              <div className="text-[10px] text-blue-600 bg-blue-50 p-2 rounded border mt-1">
+                <p className="font-medium mb-1">Generated Variables:</p>
+                <div className="font-mono space-y-0.5">
+                  <div>[{screen.variableBinding}] <span className="text-gray-400">(All)</span></div>
+                  <div>[{screen.variableBinding}1] <span className="text-gray-400">(1st)</span></div>
+                  <div>[{screen.variableBinding}2] <span className="text-gray-400">(2nd)</span></div>
+                  <div className="text-gray-400">...</div>
+                </div>
+              </div>
+            )}
+
           </div>
         </>
       )}
@@ -1076,9 +1081,11 @@ interface InterstitialFieldsProps {
   screen: InterstitialScreen;
   isLocked: boolean;
   onUpdate: (updates: Partial<InterstitialScreen>) => void;
+  availableVariables: string[];
+  variableValues?: Record<string, string[]>;
 }
 
-function InterstitialFields({ screen, onUpdate, isLocked }: InterstitialFieldsProps) {
+function InterstitialFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: InterstitialFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
   // hasVariants is true if roleVariable is set - even with empty variants (user can add them)
   const hasVariants = !!screen.roleVariable;
@@ -1260,137 +1267,74 @@ function InterstitialFields({ screen, onUpdate, isLocked }: InterstitialFieldsPr
       <Separator />
 
       {/* Variants Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Role-Based Variants
-            </h3>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={handleAddVariant}
-            disabled={isLocked}
-          >
-            <Plus size={12} className="mr-1" />
-            Add Variant
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="roleVariable" className="text-xs text-gray-500">
-            Role Variable
-          </Label>
-          <Input
-            id="roleVariable"
-            value={screen.roleVariable || "role"}
-            onChange={(e) => onUpdate({ roleVariable: e.target.value })}
-            className="h-8 text-sm"
-            placeholder="role"
-            disabled={isLocked}
-          />
-        </div>
-
-        {variantKeys.length > 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
-              Default Variant (Fallback)
-            </Label>
-            <select
-              id="defaultVariant"
-              value={screen.defaultVariant || ""}
-              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
-              className="w-full h-8 px-2 text-sm border rounded-md"
-              disabled={isLocked}
-            >
-              <option value="">None (Use Default Content)</option>
-              {variantKeys.map((key) => (
-                <option key={key} value={key}>
-                  {key}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="space-y-4 pt-2">
-          {variantKeys.map((key) => {
-            const variant = screen.variants?.[key];
-            if (!variant) return null;
-            return (
-              <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-gray-700 bg-white px-2 py-0.5 rounded border">{key}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-gray-400 hover:text-red-500"
-                    onClick={() => handleRemoveVariant(key)}
-                    disabled={isLocked}
-                  >
-                    <X size={12} />
-                  </Button>
-                </div>
-
-                <Input
-                  value={variant.headline}
-                  onChange={(e) =>
-                    onUpdate({
-                      variants: {
-                        ...screen.variants,
-                        [key]: { ...variant, headline: e.target.value },
-                      },
-                    })
-                  }
-                  className="h-7 text-sm"
-                  placeholder="Headline override (optional)"
-                  disabled={isLocked}
-                />
-
-                <div className="space-y-1">
-                  {variant.messages.map((message, index) => (
-                    <div key={index} className="flex items-center gap-1">
-                      <Input
-                        value={message.text}
-                        onChange={(e) => handleMessageChange(index, e.target.value, key)}
-                        className="h-6 text-xs flex-1"
-                        placeholder="Message"
-                        disabled={isLocked}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleRemoveMessage(index, key)}
-                        disabled={isLocked}
-                      >
-                        <X size={10} />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 text-[10px] w-full mt-1"
-                    onClick={() => handleAddMessage(key)}
-                    disabled={isLocked}
-                  >
-                    + Add Message
-                  </Button>
-                </div>
+      {/* Variants Section */}
+      <SmartVariantsSection
+        isLocked={isLocked}
+        variantKeys={variantKeys}
+        activeVariable={screen.roleVariable || ""}
+        defaultVariant={screen.defaultVariant}
+        onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
+        onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+        onAddVariant={handleAddVariant}
+        onRemoveVariant={handleRemoveVariant}
+        availableVariables={availableVariables}
+        renderVariantContent={(key) => {
+          const variant = screen.variants?.[key];
+          if (!variant) return null;
+          return (
+            <div className="space-y-3">
+              <div className="mb-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Then Show:</span>
               </div>
-            );
-          })}
-
-          {variantKeys.length === 0 && (
-            <div className="text-center p-4 border border-dashed rounded-md text-gray-400 text-xs">
-              No variants added yet.
+              <Input
+                value={variant.headline}
+                onChange={(e) =>
+                  onUpdate({
+                    variants: {
+                      ...screen.variants,
+                      [key]: { ...variant, headline: e.target.value },
+                    },
+                  })
+                }
+                className="h-7 text-sm"
+                placeholder="Headline override (optional)"
+                disabled={isLocked}
+              />
+              <div className="space-y-1">
+                {variant.messages.map((message, index) => (
+                  <div key={index} className="flex items-center gap-1">
+                    <Input
+                      value={message.text}
+                      onChange={(e) => handleMessageChange(index, e.target.value, key)}
+                      className="h-6 text-xs flex-1"
+                      placeholder="Message"
+                      disabled={isLocked}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleRemoveMessage(index, key)}
+                      disabled={isLocked}
+                    >
+                      <X size={10} />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 text-[10px] w-full mt-1"
+                  onClick={() => handleAddMessage(key)}
+                  disabled={isLocked}
+                >
+                  + Add Message
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          );
+        }}
+      />
     </div>
   );
 }
@@ -1400,9 +1344,11 @@ interface MessageFieldsProps {
   screen: MessageScreen;
   isLocked: boolean;
   onUpdate: (updates: Partial<MessageScreen>) => void;
+  availableVariables: string[];
+  variableValues?: Record<string, string[]>;
 }
 
-function MessageFields({ screen, onUpdate, isLocked }: MessageFieldsProps) {
+function MessageFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: MessageFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
 
 
@@ -1422,13 +1368,25 @@ function MessageFields({ screen, onUpdate, isLocked }: MessageFieldsProps) {
     onUpdate({ variants: newVariants });
   };
 
+  // Helper to generate unique keys
+  const getUniqueKey = (existingKeys: string[], base = "new") => {
+    let key = base;
+    let counter = 1;
+    while (existingKeys.includes(key)) {
+      key = `${base}-${counter}`;
+      counter++;
+    }
+    return key;
+  };
+
   const handleAddVariant = () => {
-    const newKey = `variant-${variantKeys.length + 1}`;
+    const newKey = getUniqueKey(variantKeys);
+
     const newVariants = {
       ...screen.variants,
       [newKey]: {
-        headline: "New headline",
-        copy: "New copy text",
+        headline: "",
+        copy: "",
       },
     };
     onUpdate({ variants: newVariants });
@@ -1442,6 +1400,13 @@ function MessageFields({ screen, onUpdate, isLocked }: MessageFieldsProps) {
 
   const handleRenameVariant = (oldKey: string, newKey: string) => {
     if (oldKey === newKey || !screen.variants) return;
+
+    // Prevent overwriting existing keys
+    if (screen.variants[newKey]) {
+      // Here you might want to show an error toast, but for now just returning prevents corruption
+      return;
+    }
+
     const newVariants: Record<string, MessageVariant> = {};
     for (const [k, v] of Object.entries(screen.variants)) {
       newVariants[k === oldKey ? newKey : k] = v;
@@ -1451,6 +1416,174 @@ function MessageFields({ screen, onUpdate, isLocked }: MessageFieldsProps) {
       updates.defaultVariant = newKey;
     }
     onUpdate(updates);
+  };
+  const handleAddNestedGroup = (parentKey: string) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant) return;
+
+    const initialNestedKey = getUniqueKey([], "new"); // No existing keys yet for the new nested group
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: {
+          ...parentVariant,
+          nestedGroup: {
+            variable: "",
+            variants: {
+              [initialNestedKey]: { headline: "", copy: "" }
+            }
+          }
+        }
+      }
+    });
+  };
+
+  const handleUpdateNestedVariable = (parentKey: string, variable: string) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant || !parentVariant.nestedGroup) return;
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: {
+          ...parentVariant,
+          nestedGroup: {
+            ...parentVariant.nestedGroup,
+            variable
+          }
+        }
+      }
+    });
+  };
+
+  const handleAddNestedVariant = (parentKey: string) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant || !parentVariant.nestedGroup) return;
+
+    const nestedKeys = Object.keys(parentVariant.nestedGroup.variants);
+    const newKey = getUniqueKey(nestedKeys);
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: {
+          ...parentVariant,
+          nestedGroup: {
+            ...parentVariant.nestedGroup,
+            variants: {
+              ...parentVariant.nestedGroup.variants,
+              [newKey]: {
+                headline: "",
+                copy: ""
+              }
+            }
+          }
+        }
+      }
+    });
+  };
+
+  const handleUpdateNestedVariant = (parentKey: string, nestedKey: string, updates: Partial<MessageVariant>) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant || !parentVariant.nestedGroup) return;
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: {
+          ...parentVariant,
+          nestedGroup: {
+            ...parentVariant.nestedGroup,
+            variants: {
+              ...parentVariant.nestedGroup.variants,
+              [nestedKey]: {
+                ...parentVariant.nestedGroup.variants[nestedKey],
+                ...updates
+              }
+            }
+          }
+        }
+      }
+    });
+  };
+
+  const handleRemoveNestedGroup = (parentKey: string) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant) return;
+
+    // Create new variant without nestedGroup
+    const { nestedGroup, ...rest } = parentVariant;
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: rest
+      }
+    });
+  };
+
+  const handleRemoveNestedVariant = (parentKey: string, nestedKey: string) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant || !parentVariant.nestedGroup) return;
+
+    const newNestedVariants = { ...parentVariant.nestedGroup.variants };
+    delete newNestedVariants[nestedKey];
+
+    // If no nested variants left, remove the nestedGroup entirely
+    if (Object.keys(newNestedVariants).length === 0) {
+      const { nestedGroup, ...rest } = parentVariant;
+      onUpdate({
+        variants: {
+          ...screen.variants,
+          [parentKey]: rest
+        }
+      });
+      return;
+    }
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: {
+          ...parentVariant,
+          nestedGroup: {
+            ...parentVariant.nestedGroup,
+            variants: newNestedVariants
+          }
+        }
+      }
+    });
+  };
+
+  const handleRenameNestedVariant = (parentKey: string, oldNestedKey: string, newNestedKey: string) => {
+    const parentVariant = screen.variants?.[parentKey];
+    if (!parentVariant || !parentVariant.nestedGroup) return;
+
+    if (oldNestedKey === newNestedKey) return;
+
+    // Prevent overwriting existing nested keys
+    if (parentVariant.nestedGroup.variants[newNestedKey]) {
+      return;
+    }
+
+    const newNestedVariants: Record<string, MessageVariant> = {};
+    for (const [k, v] of Object.entries(parentVariant.nestedGroup.variants)) {
+      newNestedVariants[k === oldNestedKey ? newNestedKey : k] = v;
+    }
+
+    onUpdate({
+      variants: {
+        ...screen.variants,
+        [parentKey]: {
+          ...parentVariant,
+          nestedGroup: {
+            ...parentVariant.nestedGroup,
+            variants: newNestedVariants
+          }
+        }
+      }
+    });
   };
 
   return (
@@ -1515,98 +1648,104 @@ function MessageFields({ screen, onUpdate, isLocked }: MessageFieldsProps) {
       <Separator />
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Role-Based Variants
-            </h3>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={handleAddVariant}
-            disabled={isLocked}
-          >
-            <Plus size={12} className="mr-1" />
-            Add Variant
-          </Button>
-        </div>
+        <Separator />
 
-        <div className="space-y-2">
-          <Label htmlFor="conditionVariable" className="text-xs text-gray-500">
-            Condition Variable
-          </Label>
-          <Input
-            id="conditionVariable"
-            value={screen.conditionVariable || "variable"}
-            onChange={(e) => onUpdate({ conditionVariable: e.target.value })}
-            className="h-8 text-sm"
-            placeholder="e.g. barrier"
-            disabled={isLocked}
-          />
-        </div>
+        <SmartVariantsSection
+          isLocked={isLocked}
+          variantKeys={variantKeys}
+          activeVariable={screen.conditionVariable || ""}
+          defaultVariant={screen.defaultVariant}
+          onUpdateVariable={(val) => onUpdate({ conditionVariable: val })}
+          onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+          onAddVariant={handleAddVariant}
+          onRemoveVariant={handleRemoveVariant}
+          onRenameVariant={handleRenameVariant}
+          availableVariables={availableVariables}
+          variableValues={variableValues}
+          renderVariantContent={(key) => {
+            const variant = screen.variants?.[key];
+            const hasNested = !!variant?.nestedGroup;
 
-        {variantKeys.length > 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
-              Default Variant (Fallback)
-            </Label>
-            <select
-              id="defaultVariant"
-              value={screen.defaultVariant || ""}
-              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
-              className="w-full h-8 px-2 text-sm border rounded-md"
-              disabled={isLocked}
-            >
-              <option value="">None (Use Default Content)</option>
-              {variantKeys.map((key) => (
-                <option key={key} value={key}>
-                  {key}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+            return (
+              <div className="space-y-4">
+                {/* Level 2 Logic */}
+                {hasNested ? (
+                  <div className="mb-3 space-y-2 relative group">
+                    <SmartVariantsSection
+                      isLocked={isLocked}
+                      variantKeys={Object.keys(variant?.nestedGroup?.variants || {})}
+                      activeVariable={variant?.nestedGroup?.variable || ""}
+                      availableVariables={availableVariables}
+                      variableValues={variableValues}
+                      onUpdateVariable={(val) => handleUpdateNestedVariable(key, val)}
+                      onUpdateDefaultVariant={(val) => { }} // Not implemented for L2 yet
+                      onAddVariant={() => handleAddNestedVariant(key)}
+                      onRemoveVariant={(nestedKey) => handleRemoveNestedVariant(key, nestedKey)}
+                      onRenameVariant={(oldK, newK) => handleRenameNestedVariant(key, oldK, newK)}
+                      minimal={true}
+                      renderVariantContent={(nestedKey) => (
+                        <div className="space-y-4">
+                          <div className="mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Then Show:</span>
+                          </div>
+                          <div className="space-y-2">
+                            <Input
+                              value={variant?.nestedGroup?.variants[nestedKey]?.headline || ""}
+                              onChange={(e) => handleUpdateNestedVariant(key, nestedKey, { headline: e.target.value })}
+                              className="h-7 text-sm"
+                              placeholder="Headline"
+                              disabled={isLocked}
+                            />
+                            <textarea
+                              value={variant?.nestedGroup?.variants[nestedKey]?.copy || ""}
+                              onChange={(e) => handleUpdateNestedVariant(key, nestedKey, { copy: e.target.value })}
+                              className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
+                              placeholder="Body copy..."
+                              disabled={isLocked}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-blue-400 hover:text-blue-600 w-full justify-start mb-2"
+                    onClick={() => handleAddNestedGroup(key)}
+                    disabled={isLocked}
+                  >
+                    <CornerDownRight className="w-3 h-3 mr-1" />
+                    Add 'and if' condition
+                  </Button>
+                )}
 
-        <div className="space-y-3">
-          {variantKeys.map((key) => (
-            <div key={key} className="p-3 bg-gray-50 rounded space-y-2 border border-gray-200">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={key}
-                  onChange={(e) => handleRenameVariant(key, e.target.value)}
-                  className="h-6 text-xs flex-1 font-medium"
-                  placeholder="Variant key"
-                  disabled={isLocked}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => handleRemoveVariant(key)}
-                  disabled={isLocked}
-                >
-                  <X size={12} />
-                </Button>
+                {!hasNested && (
+                  <>
+                    <div className="mb-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Then Show:</span>
+                    </div>
+                    <Input
+                      value={variant?.headline || ""}
+                      onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
+                      className="h-7 text-sm"
+                      placeholder="Headline"
+                      disabled={isLocked}
+                    />
+                    <textarea
+                      value={variant?.copy || ""}
+                      onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
+                      className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
+                      placeholder="Body copy..."
+                      disabled={isLocked}
+                    />
+                  </>
+                )}
               </div>
-              <Input
-                value={screen.variants?.[key]?.headline || ""}
-                onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
-                className="h-7 text-sm"
-                placeholder="Headline"
-                disabled={isLocked}
-              />
-              <textarea
-                value={screen.variants?.[key]?.copy || ""}
-                onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
-                className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
-                placeholder="Copy text..."
-                disabled={isLocked}
-              />
-            </div>
-          ))}
-        </div>
+            );
+          }}
+        />
       </div>
 
       <Separator />
@@ -1650,9 +1789,11 @@ interface FormFieldsProps {
   screen: FormScreen;
   isLocked: boolean;
   onUpdate: (updates: Partial<FormScreen>) => void;
+  availableVariables: string[];
+  variableValues?: Record<string, string[]>;
 }
 
-function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
+function FormFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: FormFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
 
   const toggleField = (field: "email" | "password" | "firstName" | "lastName") => {
@@ -1823,155 +1964,105 @@ function FormFields({ screen, onUpdate, isLocked }: FormFieldsProps) {
 
       <Separator />
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Role-Based Variants
-            </h3>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={handleAddVariant}
-            disabled={isLocked}
-          >
-            <Plus size={12} className="mr-1" />
-            Add Variant
-          </Button>
-        </div>
 
-        {variantKeys.length > 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
-              Default Variant (Fallback)
-            </Label>
-            <select
-              id="defaultVariant"
-              value={screen.defaultVariant || ""}
-              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
-              className="w-full h-8 px-2 text-sm border rounded-md"
-              disabled={isLocked}
-            >
-              <option value="">None (Use Default Content)</option>
-              {variantKeys.map((key) => (
-                <option key={key} value={key}>
-                  {key}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
-        <div className="space-y-3">
-          {variantKeys.map((key) => {
-            const variant = screen.variants?.[key];
-            if (!variant) return null;
-            // Determine active custom settings or inherit from default
-            const showSocial = variant.showSocialLogin !== undefined ? variant.showSocialLogin : screen.showSocialLogin;
-            const collectFields = variant.collectFields || screen.collectFields || [];
-            const socialProviders = variant.socialProviders || screen.socialProviders || [];
-            const fieldsInherited = variant.collectFields === undefined;
-            const socialInherited = variant.socialProviders === undefined;
+      <SmartVariantsSection
+        isLocked={isLocked}
+        variantKeys={variantKeys}
+        activeVariable={screen.roleVariable || ""}
+        defaultVariant={screen.defaultVariant}
+        onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
+        onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+        onAddVariant={handleAddVariant}
+        onRemoveVariant={handleRemoveVariant}
+        availableVariables={availableVariables}
+        renderVariantContent={(key) => {
+          const variant = screen.variants?.[key];
+          if (!variant) return null;
 
-            return (
-              <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={key}
-                    onChange={(e) => handleRenameVariant(key, e.target.value)}
-                    className="h-6 text-xs flex-1 font-medium"
-                    placeholder="Variant key"
+          // Determine active custom settings or inherit from default
+          const showSocial = variant.showSocialLogin !== undefined ? variant.showSocialLogin : screen.showSocialLogin;
+          const collectFields = variant.collectFields || screen.collectFields || [];
+          const socialProviders = variant.socialProviders || screen.socialProviders || [];
+          const fieldsInherited = variant.collectFields === undefined;
+          const socialInherited = variant.socialProviders === undefined;
+
+          return (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase text-gray-500">Messaging</Label>
+                <Input
+                  value={variant.headline || ""}
+                  onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
+                  className="h-7 text-sm"
+                  placeholder="Headline"
+                  disabled={isLocked}
+                />
+                <textarea
+                  value={variant.copy || ""}
+                  onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
+                  className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
+                  placeholder="Copy text..."
+                  disabled={isLocked}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase text-gray-500">Fields</Label>
+                <div className="space-y-1 pl-1">
+                  {(["email", "password", "firstName", "lastName"] as const).map((field) => (
+                    <label key={field} className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={collectFields.includes(field)}
+                        onChange={() => toggleVariantField(key, field)}
+                        className="rounded"
+                        disabled={isLocked}
+                      />
+                      <span className={collectFields.includes(field) ? "text-black" : "text-gray-500"}>
+                        {field} {fieldsInherited ? "(inherited)" : ""}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase text-gray-500">Social</Label>
+                <div className="flex items-center gap-2 pl-1 mb-1">
+                  <input
+                    type="checkbox"
+                    checked={showSocial}
+                    onChange={(e) => handleVariantChange(key, "showSocialLogin", e.target.checked)}
+                    className="rounded"
                     disabled={isLocked}
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleRemoveVariant(key)}
-                    disabled={isLocked}
-                  >
-                    <X size={12} />
-                  </Button>
+                  <span className="text-xs">Show Social Login</span>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase text-gray-500">Messaging</Label>
-                  <Input
-                    value={variant.headline || ""}
-                    onChange={(e) => handleVariantChange(key, "headline", e.target.value)}
-                    className="h-7 text-sm"
-                    placeholder="Headline"
-                    disabled={isLocked}
-                  />
-                  <textarea
-                    value={variant.copy || ""}
-                    onChange={(e) => handleVariantChange(key, "copy", e.target.value)}
-                    className="w-full h-16 px-2 py-1 text-xs border rounded resize-none"
-                    placeholder="Copy text..."
-                    disabled={isLocked}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase text-gray-500">Fields</Label>
-                  <div className="space-y-1 pl-1">
-                    {(["email", "password", "firstName", "lastName"] as const).map((field) => (
-                      <label key={field} className="flex items-center gap-2 text-xs">
+                {showSocial && (
+                  <div className="space-y-1 pl-1 ml-4 border-l-2 border-gray-200 pl-2">
+                    {(["google", "microsoft", "clever"] as const).map((provider) => (
+                      <label key={provider} className="flex items-center gap-2 text-xs">
                         <input
                           type="checkbox"
-                          checked={collectFields.includes(field)}
-                          onChange={() => toggleVariantField(key, field)}
+                          checked={socialProviders.includes(provider)}
+                          onChange={() => toggleVariantProvider(key, provider)}
                           className="rounded"
                           disabled={isLocked}
                         />
-                        <span className={collectFields.includes(field) ? "text-black" : "text-gray-500"}>
-                          {field} {fieldsInherited ? "(inherited)" : ""}
+                        <span className={socialProviders.includes(provider) ? "text-black" : "text-gray-500"}>
+                          {provider} {socialInherited ? "(inherited)" : ""}
                         </span>
                       </label>
                     ))}
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase text-gray-500">Social</Label>
-                  <div className="flex items-center gap-2 pl-1 mb-1">
-                    <input
-                      type="checkbox"
-                      checked={showSocial}
-                      onChange={(e) => handleVariantChange(key, "showSocialLogin", e.target.checked)}
-                      className="rounded"
-                      disabled={isLocked}
-                    />
-                    <span className="text-xs">Show Social Login</span>
-                  </div>
-
-                  {showSocial && (
-                    <div className="space-y-1 pl-1 ml-4 border-l-2 border-gray-200 pl-2">
-                      {(["google", "microsoft", "clever"] as const).map((provider) => (
-                        <label key={provider} className="flex items-center gap-2 text-xs">
-                          <input
-                            type="checkbox"
-                            checked={socialProviders.includes(provider)}
-                            onChange={() => toggleVariantProvider(key, provider)}
-                            className="rounded"
-                            disabled={isLocked}
-                          />
-                          <span className={socialProviders.includes(provider) ? "text-black" : "text-gray-500"}>
-                            {provider} {socialInherited ? "(inherited)" : ""}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
+                )}
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </div>
+          );
+        }}
+      />
     </div>
   );
 }
@@ -1981,9 +2072,11 @@ interface PaywallFieldsProps {
   screen: PaywallScreen;
   isLocked: boolean;
   onUpdate: (updates: Partial<PaywallScreen>) => void;
+  availableVariables: string[];
+  variableValues?: Record<string, string[]>;
 }
 
-function PaywallFields({ screen, onUpdate, isLocked }: PaywallFieldsProps) {
+function PaywallFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: PaywallFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
 
   const handlePropChange = (index: number, value: string, variantKey?: string) => {
@@ -2123,137 +2216,77 @@ function PaywallFields({ screen, onUpdate, isLocked }: PaywallFieldsProps) {
       <Separator />
 
       {/* Variants Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Role-Based Variants
-            </h3>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={handleAddVariant}
-            disabled={isLocked}
-          >
-            <Plus size={12} className="mr-1" />
-            Add Variant
-          </Button>
-        </div>
+      {/* Variants Section */}
+      <SmartVariantsSection
+        isLocked={isLocked}
+        variantKeys={variantKeys}
+        activeVariable={screen.roleVariable || ""}
+        defaultVariant={screen.defaultVariant}
+        onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
+        onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+        onAddVariant={handleAddVariant}
 
-        <div className="space-y-2">
-          <Label htmlFor="roleVariable" className="text-xs text-gray-500">
-            Role Variable
-          </Label>
-          <Input
-            id="roleVariable"
-            value={screen.roleVariable || "role"}
-            onChange={(e) => onUpdate({ roleVariable: e.target.value })}
-            className="h-8 text-sm"
-            placeholder="role"
-            disabled={isLocked}
-          />
-        </div>
-
-        {variantKeys.length > 0 && (
-          <div className="space-y-2">
-            <Label htmlFor="defaultVariant" className="text-xs text-gray-500">
-              Default Variant (Fallback)
-            </Label>
-            <select
-              id="defaultVariant"
-              value={screen.defaultVariant || ""}
-              onChange={(e) => onUpdate({ defaultVariant: e.target.value })}
-              className="w-full h-8 px-2 text-sm border rounded-md"
-              disabled={isLocked}
-            >
-              <option value="">None (Use Default Content)</option>
-              {variantKeys.map((key) => (
-                <option key={key} value={key}>
-                  {key}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="space-y-4 pt-2">
-          {variantKeys.map((key) => {
-            const variant = screen.variants?.[key];
-            if (!variant) return null;
-            return (
-              <div key={key} className="p-3 bg-gray-50 rounded space-y-3 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-gray-700 bg-white px-2 py-0.5 rounded border">{key}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-gray-400 hover:text-red-500"
-                    onClick={() => handleRemoveVariant(key)}
-                    disabled={isLocked}
-                  >
-                    <X size={12} />
-                  </Button>
-                </div>
-
-                <Input
-                  value={variant.headline}
-                  onChange={(e) =>
-                    onUpdate({
-                      variants: {
-                        ...screen.variants,
-                        [key]: { ...variant, headline: e.target.value },
-                      },
-                    })
-                  }
-                  className="h-7 text-sm"
-                  placeholder="Headline override (optional)"
-                  disabled={isLocked}
-                />
-
-                <div className="space-y-2">
-                  {variant.valuePropositions.map((prop, index) => (
-                    <div key={index} className="flex items-center gap-1">
-                      <Input
-                        value={prop}
-                        onChange={(e) => handlePropChange(index, e.target.value, key)}
-                        className="h-7 text-xs flex-1"
-                        placeholder="Benefit override"
-                        disabled={isLocked}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleRemoveProp(index, key)}
-                        disabled={isLocked}
-                      >
-                        <X size={10} />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 text-[10px] w-full"
-                    onClick={() => handleAddProp(key)}
-                    disabled={isLocked}
-                  >
-                    + Add Benefit
-                  </Button>
-                </div>
+        onRemoveVariant={handleRemoveVariant}
+        availableVariables={availableVariables}
+        variableValues={variableValues}
+        renderVariantContent={(key) => {
+          const variant = screen.variants?.[key];
+          if (!variant) return null;
+          return (
+            <div className="space-y-3">
+              <div className="mb-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Then Show:</span>
               </div>
-            );
-          })}
+              <Input
+                value={variant.headline}
+                onChange={(e) =>
+                  onUpdate({
+                    variants: {
+                      ...screen.variants,
+                      [key]: { ...variant, headline: e.target.value },
+                    },
+                  })
+                }
+                className="h-7 text-sm"
+                placeholder="Headline override (optional)"
+                disabled={isLocked}
+              />
 
-          {variantKeys.length === 0 && (
-            <div className="text-center p-4 border border-dashed rounded-md text-gray-400 text-xs">
-              No variants added yet.
+              <div className="space-y-2">
+                {variant.valuePropositions.map((prop, index) => (
+                  <div key={index} className="flex items-center gap-1">
+                    <Input
+                      value={prop}
+                      onChange={(e) => handlePropChange(index, e.target.value, key)}
+                      className="h-7 text-xs flex-1"
+                      placeholder="Benefit override"
+                      disabled={isLocked}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleRemoveProp(index, key)}
+                      disabled={isLocked}
+                    >
+                      <X size={10} />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 text-[10px] w-full"
+                  onClick={() => handleAddProp(key)}
+                  disabled={isLocked}
+                >
+                  + Add Benefit
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          );
+        }}
+      />
 
       <Separator />
 
