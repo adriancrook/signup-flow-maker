@@ -1009,12 +1009,83 @@ export const componentRegistry: ComponentTemplate[] = [
         { text: "Finalizing..." }
       ],
       variants: {
-        student: { headline: "Building Your Plan...", messages: [{ text: "Measuring your baseline..." }, { text: "Setting target speed..." }, { text: "Optimizing curriculum..." }] },
-        parent: { headline: "Building Plan...", messages: [{ text: "Assessing typing level..." }, { text: "Calibrating tech literacy modules..." }, { text: "Addressing screen time concerns..." }] },
-        adult: { headline: "Building Your Plan...", messages: [{ text: "Optimizing for your goal..." }, { text: "Tackling your barriers..." }, { text: "Finalizing roadmap..." }] },
-        teacher: { headline: "Building Classroom Plan...", messages: [{ text: "Confirming standards alignment..." }, { text: "Loading curriculum..." }, { text: "Configuring rostering..." }] },
-        "school-admin": { headline: "Building School Plan...", messages: [{ text: "Scaling for student count..." }, { text: "Securing environment..." }, { text: "Enabling data retention..." }] },
-        "district-admin": { headline: "Building District Plan...", messages: [{ text: "Mapping schools to dashboard..." }, { text: "Verifying rostering protocols..." }, { text: "Preparing compliance docs..." }] }
+        student: {
+          headline: "Building Your Plan...",
+          messages: [
+            { text: "Measuring your baseline of [currentWpm] WPM..." },
+            { text: "Setting your target to [targetSpeed] WPM..." },
+            { text: "Optimizing curriculum for [purpose]..." },
+            { text: "Tackling [barrier] with distraction-free practice..." },
+            { text: "Activating [motivation] to keep you engaged..." },
+            { text: "Scheduling [dailyGoal] of daily practice..." },
+            { text: "Finalizing your personalized roadmap..." }
+          ]
+        },
+        parent: {
+          headline: "Building Plan...",
+          messages: [
+            { text: "Assessing [childName]'s [experienceLevel] typing level..." },
+            { text: "Calibrating [techSkillsLevel] tech literacy modules..." },
+            { text: "Addressing your concern about [screenTimeConcern]..." },
+            { text: "Tackling [barrier] with distraction-free practice..." },
+            { text: "Configuring Ad-Free environment for safe learning..." },
+            { text: "Activating [motivation]-based engagement..." },
+            { text: "Setting [dailyGoal] daily practice target..." },
+            { text: "Generating [childName]'s personalized roadmap..." }
+          ]
+        },
+        adult: {
+          headline: "Building Your Plan...",
+          messages: [
+            { text: "Measuring your baseline of [currentWpm] WPM..." },
+            { text: "Setting your target to [targetSpeed] WPM..." },
+            { text: "Optimizing for [primaryGoal]..." },
+            { text: "Preparing verifiable certificate...", condition: { variable: "needsCertificate", operator: "equals", value: "yes" } },
+            { text: "Tackling [barrier] with Flow State mode..." },
+            { text: "Activating [motivation] tracking..." },
+            { text: "Setting [dailyGoal] daily commitment..." },
+            { text: "Finalizing your personalized roadmap..." }
+          ]
+        },
+        teacher: {
+          headline: "Building Classroom Plan...",
+          messages: [
+            { text: "Confirming [confirmedState] standards alignment..." },
+            { text: "Loading curriculum for grades [gradeLevels]..." },
+            { text: "Preparing roster for [studentCount] students..." },
+            { text: "Adding [contentNeeds] modules..." },
+            { text: "Configuring [rosteringMethod] sync..." },
+            { text: "Optimizing for [adImportance] ad-free priority..." },
+            { text: "Enabling [needsAccessibility] accommodations...", condition: { variable: "needsAccessibility", operator: "equals", value: "yes" } },
+            { text: "Verifying [device] compatibility..." },
+            { text: "Building your classroom plan..." }
+          ]
+        },
+        "school-admin": {
+          headline: "Building School Plan...",
+          messages: [
+            { text: "Scaling for [studentCount] students..." },
+            { text: "Configuring [rosteringMethod] integration..." },
+            { text: "Securing [environmentConcern] protection..." },
+            { text: "Enabling [dataRetention] data history..." },
+            { text: "Calibrating [needsAnalytics] reporting dashboard..." },
+            { text: "Configuring Role Switcher...", condition: { variable: "teachesClasses", operator: "equals", value: "yes" } },
+            { text: "Generating quote for [studentCount] licenses..." }
+          ]
+        },
+        "district-admin": {
+          headline: "Building District Plan...",
+          messages: [
+            { text: "Mapping [schoolCount] schools to Master Dashboard..." },
+            { text: "Verifying [rosteringMethod] protocols..." },
+            { text: "Securing [environmentConcern] protection..." },
+            { text: "Preparing [dpaRequired] compliance documentation...", condition: { variable: "dpaRequired", operator: "equals", value: "yes" } },
+            { text: "Calibrating [analyticsLevel] reporting dashboard..." },
+            { text: "Enabling [dataRetention] data history..." },
+            { text: "Configuring Role Switcher...", condition: { variable: "teachesClasses", operator: "equals", value: "yes" } },
+            { text: "Building your district implementation roadmap..." }
+          ]
+        }
       }
     }
   },
