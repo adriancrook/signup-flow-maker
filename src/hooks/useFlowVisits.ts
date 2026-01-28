@@ -14,7 +14,7 @@ export function useFlowVisits(flowId: string) {
             .select('last_viewed_at')
             .eq('flow_id', flowId)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (data) {
             setLastViewedAt(data.last_viewed_at);
