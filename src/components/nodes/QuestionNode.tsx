@@ -72,7 +72,7 @@ function QuestionNodeComponent({ data, selected }: NodeProps) {
 
         {displayOptions && displayOptions.length > 0 && (
           <div className="space-y-1">
-            {displayOptions.slice(0, 3).map((option) => (
+            {displayOptions.map((option) => (
               <div
                 key={option.id}
                 className="relative flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded px-2 py-1 group"
@@ -99,11 +99,6 @@ function QuestionNodeComponent({ data, selected }: NodeProps) {
                 />
               </div>
             ))}
-            {displayOptions.length > 3 && (
-              <p className="text-xs text-gray-400 pl-2">
-                +{displayOptions.length - 3} more options
-              </p>
-            )}
           </div>
         )}
 
