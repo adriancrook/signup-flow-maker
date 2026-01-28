@@ -235,6 +235,7 @@ const defaultFlowSettings: FlowSettings = {
   allowBackNavigation: true,
   autoSaveResponses: true,
   theme: "default",
+  role: undefined,
 };
 
 export const useEditorStore = create<EditorState>()(
@@ -258,8 +259,23 @@ export const useEditorStore = create<EditorState>()(
       // Set entire flow
       // Set entire flow
       setFlow: async (flow) => {
-        console.log("[DEBUG] setFlow called with screens:", flow.screens.length);
-        console.log("[DEBUG] First screen type:", flow.screens[0]?.type);
+
+        // MIGRATION: Infer Role if missing
+        if (!flow.settings.role && (flow.id || flow.name)) {
+          const id = (flow.id || "").toLowerCase();
+          const name = (flow.name || "").toLowerCase();
+
+          if (id.includes("student") || name.includes("student")) flow.settings.role = "student";
+          else if (id.includes("parent") || name.includes("parent")) flow.settings.role = "parent";
+          else if (id.includes("teacher") || name.includes("teacher")) flow.settings.role = "teacher";
+          else if (id.includes("school-admin") || name.includes("school admin")) flow.settings.role = "school-admin";
+          else if (id.includes("district-admin") || name.includes("district admin")) flow.settings.role = "district-admin";
+          else if (id.includes("adult") || name.includes("adult")) flow.settings.role = "adult";
+
+          if (flow.settings.role) {
+            // Role inferred
+          }
+        }
 
         // Create custom deepmerge that replaces arrays instead of concatenating
         const customDeepmerge = deepmergeCustom({
@@ -460,7 +476,10 @@ export const useEditorStore = create<EditorState>()(
           entryScreenId: "",
           screens: [],
           variables: [],
-          settings: defaultFlowSettings,
+          settings: {
+            ...defaultFlowSettings,
+            role: category === "educator" ? "teacher" : "student"
+          },
         };
         set((state) => {
           state.currentFlow = flow;

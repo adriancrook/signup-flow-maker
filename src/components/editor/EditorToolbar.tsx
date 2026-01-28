@@ -273,6 +273,49 @@ export function EditorToolbar({ flowName, isReadOnly, comments = [] }: EditorToo
               v{currentFlow.version}
             </span>
           )}
+
+          <Separator orientation="vertical" className="h-4 mx-2" />
+
+          {/* Role Selector */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1 px-2 text-slate-600 border border-transparent hover:border-slate-200"
+                disabled={isReadOnly}
+              >
+                <span className="text-slate-400">Role:</span>
+                <span className="font-medium text-slate-800">
+                  {currentFlow?.settings?.role
+                    ? currentFlow.settings.role.charAt(0).toUpperCase() + currentFlow.settings.role.slice(1)
+                    : "Select..."}
+                </span>
+                <ChevronDown size={12} className="opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => useEditorStore.getState().updateFlowMeta({ settings: { ...currentFlow?.settings, role: "student" } as any })}>
+                Student
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useEditorStore.getState().updateFlowMeta({ settings: { ...currentFlow?.settings, role: "parent" } as any })}>
+                Parent
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useEditorStore.getState().updateFlowMeta({ settings: { ...currentFlow?.settings, role: "adult" } as any })}>
+                Adult
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => useEditorStore.getState().updateFlowMeta({ settings: { ...currentFlow?.settings, role: "teacher" } as any })}>
+                Teacher
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useEditorStore.getState().updateFlowMeta({ settings: { ...currentFlow?.settings, role: "school-admin" } as any })}>
+                School Admin
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useEditorStore.getState().updateFlowMeta({ settings: { ...currentFlow?.settings, role: "district-admin" } as any })}>
+                District Admin
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Dev Auth Details */}
@@ -397,7 +440,19 @@ export function EditorToolbar({ flowName, isReadOnly, comments = [] }: EditorToo
                   disabled={!selectedNodeId}
                   onClick={() => {
                     if (selectedNodeId) {
-                      usePreviewStore.getState().startPreview(selectedNodeId);
+                      // Calculate default variables
+                      const currentFlow = useEditorStore.getState().currentFlow;
+                      const initialVariables: Record<string, string | number | boolean | string[]> = {};
+
+                      if (currentFlow?.variables) {
+                        currentFlow.variables.forEach((variable) => {
+                          if (variable.defaultValue !== undefined && variable.defaultValue !== "") {
+                            initialVariables[variable.name] = variable.defaultValue;
+                          }
+                        });
+                      }
+
+                      usePreviewStore.getState().startPreview(selectedNodeId, initialVariables);
                       if (!previewMode) {
                         togglePreviewMode();
                       }

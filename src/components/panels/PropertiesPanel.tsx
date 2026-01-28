@@ -903,13 +903,13 @@ function QuestionFields({ screen, onUpdate, isLocked, availableVariables, variab
             variantKeys={variantKeys}
             activeVariable={(screen as MultipleChoiceScreen).roleVariable || ""}
             defaultVariant={(screen as MultipleChoiceScreen).defaultVariant}
-            onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
-            onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+            onUpdateVariable={(val: string) => onUpdate({ roleVariable: val })}
+            onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
             onAddVariant={handleAddVariant}
             onRemoveVariant={handleRemoveVariant}
             availableVariables={availableVariables}
             variableValues={variableValues}
-            renderVariantContent={(key) => {
+            renderVariantContent={(key: string) => {
               const variant = (screen as MultipleChoiceScreen).variants?.[key];
               if (!variant) return null;
               return (
@@ -1273,12 +1273,12 @@ function InterstitialFields({ screen, onUpdate, isLocked, availableVariables, va
         variantKeys={variantKeys}
         activeVariable={screen.roleVariable || ""}
         defaultVariant={screen.defaultVariant}
-        onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
-        onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+        onUpdateVariable={(val: string) => onUpdate({ roleVariable: val })}
+        onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
         onAddVariant={handleAddVariant}
         onRemoveVariant={handleRemoveVariant}
         availableVariables={availableVariables}
-        renderVariantContent={(key) => {
+        renderVariantContent={(key: string) => {
           const variant = screen.variants?.[key];
           if (!variant) return null;
           return (
@@ -1350,6 +1350,19 @@ interface MessageFieldsProps {
 
 function MessageFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: MessageFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
+
+  // Migration: If roleVariable exists but conditionVariable doesn't, migrate it.
+  const legacyRoleVar = (screen as unknown as { roleVariable?: string }).roleVariable;
+  const conditionVar = screen.conditionVariable;
+
+  useEffect(() => {
+    if (legacyRoleVar && !conditionVar) {
+      onUpdate({
+        conditionVariable: legacyRoleVar,
+        // We persist roleVariable for now to avoid breaking other things, but conditionVariable takes precedence
+      });
+    }
+  }, [legacyRoleVar, conditionVar, onUpdate]);
 
 
   const handleVariantChange = (
@@ -1655,14 +1668,14 @@ function MessageFields({ screen, onUpdate, isLocked, availableVariables, variabl
           variantKeys={variantKeys}
           activeVariable={screen.conditionVariable || ""}
           defaultVariant={screen.defaultVariant}
-          onUpdateVariable={(val) => onUpdate({ conditionVariable: val })}
-          onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+          onUpdateVariable={(val: string) => onUpdate({ conditionVariable: val })}
+          onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
           onAddVariant={handleAddVariant}
           onRemoveVariant={handleRemoveVariant}
           onRenameVariant={handleRenameVariant}
           availableVariables={availableVariables}
           variableValues={variableValues}
-          renderVariantContent={(key) => {
+          renderVariantContent={(key: string) => {
             const variant = screen.variants?.[key];
             const hasNested = !!variant?.nestedGroup;
 
@@ -1677,13 +1690,13 @@ function MessageFields({ screen, onUpdate, isLocked, availableVariables, variabl
                       activeVariable={variant?.nestedGroup?.variable || ""}
                       availableVariables={availableVariables}
                       variableValues={variableValues}
-                      onUpdateVariable={(val) => handleUpdateNestedVariable(key, val)}
-                      onUpdateDefaultVariant={(val) => { }} // Not implemented for L2 yet
+                      onUpdateVariable={(val: string) => handleUpdateNestedVariable(key, val)}
+                      onUpdateDefaultVariant={(val: string) => { }} // Not implemented for L2 yet
                       onAddVariant={() => handleAddNestedVariant(key)}
-                      onRemoveVariant={(nestedKey) => handleRemoveNestedVariant(key, nestedKey)}
-                      onRenameVariant={(oldK, newK) => handleRenameNestedVariant(key, oldK, newK)}
+                      onRemoveVariant={(nestedKey: string) => handleRemoveNestedVariant(key, nestedKey)}
+                      onRenameVariant={(oldK: string, newK: string) => handleRenameNestedVariant(key, oldK, newK)}
                       minimal={true}
-                      renderVariantContent={(nestedKey) => (
+                      renderVariantContent={(nestedKey: string) => (
                         <div className="space-y-4">
                           <div className="mb-1">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Then Show:</span>
@@ -1717,7 +1730,7 @@ function MessageFields({ screen, onUpdate, isLocked, availableVariables, variabl
                     disabled={isLocked}
                   >
                     <CornerDownRight className="w-3 h-3 mr-1" />
-                    Add 'and if' condition
+                    Add &apos;and if&apos; condition
                   </Button>
                 )}
 
@@ -1971,12 +1984,12 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
         variantKeys={variantKeys}
         activeVariable={screen.roleVariable || ""}
         defaultVariant={screen.defaultVariant}
-        onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
-        onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+        onUpdateVariable={(val: string) => onUpdate({ roleVariable: val })}
+        onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
         onAddVariant={handleAddVariant}
         onRemoveVariant={handleRemoveVariant}
         availableVariables={availableVariables}
-        renderVariantContent={(key) => {
+        renderVariantContent={(key: string) => {
           const variant = screen.variants?.[key];
           if (!variant) return null;
 
@@ -2222,14 +2235,14 @@ function PaywallFields({ screen, onUpdate, isLocked, availableVariables, variabl
         variantKeys={variantKeys}
         activeVariable={screen.roleVariable || ""}
         defaultVariant={screen.defaultVariant}
-        onUpdateVariable={(val) => onUpdate({ roleVariable: val })}
-        onUpdateDefaultVariant={(val) => onUpdate({ defaultVariant: val })}
+        onUpdateVariable={(val: string) => onUpdate({ roleVariable: val })}
+        onUpdateDefaultVariant={(val: string) => onUpdate({ defaultVariant: val })}
         onAddVariant={handleAddVariant}
 
         onRemoveVariant={handleRemoveVariant}
         availableVariables={availableVariables}
         variableValues={variableValues}
-        renderVariantContent={(key) => {
+        renderVariantContent={(key: string) => {
           const variant = screen.variants?.[key];
           if (!variant) return null;
           return (

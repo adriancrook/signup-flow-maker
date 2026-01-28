@@ -35,7 +35,7 @@ export function ScreenRenderer({
 }) {
   // Interpolate variables in text
   const interpolate = (text: string): string => {
-    return text.replace(/\[(\w+)\]/g, (_, varName) => {
+    return text.replace(/\[([^\]]+)\]/g, (_, varName) => {
       const value = variables[varName];
       if (value === undefined) return `[${varName}]`;
       return Array.isArray(value) ? value.join(", ") : String(value);
@@ -253,7 +253,7 @@ function MultiSelectRenderer({
 }: {
   screen: MultiSelectScreen;
   interpolate: (text: string) => string;
-  onSetVariable: (name: string, value: string[]) => void;
+  onSetVariable: (name: string, value: string | number | boolean | string[]) => void;
   onNext: () => void;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
@@ -269,6 +269,11 @@ function MultiSelectRenderer({
   const handleContinue = () => {
     if (screen.variableBinding) {
       onSetVariable(screen.variableBinding, selected);
+
+      // Also expand into individual variables (e.g., purpose1, purpose2)
+      selected.forEach((val, index) => {
+        onSetVariable(`${screen.variableBinding}${index + 1}`, val);
+      });
     }
     onNext();
   };
@@ -414,14 +419,42 @@ function MessageRenderer({
   if (screen.conditionVariable && screen.variants) {
     // Conditional mode - select variant based on variable value
     const conditionValue = String(variables[screen.conditionVariable] || "");
-    const variant =
-      screen.variants[conditionValue] ||
-      (screen.defaultVariant ? screen.variants[screen.defaultVariant] : null);
+
+    // Explicitly check if the variant exists for this value
+    let variant = screen.variants[conditionValue];
+
+    // If no direct match, TRY the default variant logic
+    // But ONLY if we didn't find a direct match.
+    if (!variant && screen.defaultVariant && screen.variants[screen.defaultVariant]) {
+      variant = screen.variants[screen.defaultVariant];
+    }
+
+    // If still no variant and the value was explicitly boolean "true" (some legacy boolean logic?)
+    // This is rare but possible in older flows.
+    if (!variant && conditionValue === "true" && screen.variants["true"]) {
+      variant = screen.variants["true"];
+    }
 
     if (variant) {
-      headline = variant.headline;
-      copy = variant.copy;
+      headline = variant.headline || "";
+      copy = variant.copy || "";
+
+      // Handle Nested Groups (Level 2)
+      if (variant.nestedGroup && variant.nestedGroup.variable) {
+        const nestedVal = String(variables[variant.nestedGroup.variable] || "");
+        const nestedVariant = variant.nestedGroup.variants[nestedVal];
+
+        if (nestedVariant) {
+          headline = nestedVariant.headline || headline;
+          copy = nestedVariant.copy || copy;
+        }
+      }
+
+      // Interpolate content
+      headline = interpolate(headline);
+      copy = interpolate(copy);
     } else {
+      // Fallback to simple mode fields if no variant matched
       headline = screen.headline || "Great!";
       copy = screen.copy || "";
     }
@@ -470,6 +503,7 @@ function MessageRenderer({
         {screen.autoProceed && (
           <p className="text-sm text-gray-400">Continuing automatically...</p>
         )}
+
       </div>
     </div>
   );

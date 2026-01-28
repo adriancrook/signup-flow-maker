@@ -49,9 +49,33 @@ export function FlowPreview() {
   // Start preview when entering preview mode
   useEffect(() => {
     if (currentFlow?.entryScreenId && !isActive) {
-      startPreview(currentFlow.entryScreenId);
+      // Calculate initial variables from flow definition
+      const initialVariables: Record<string, string | number | boolean | string[]> = {};
+
+      if (currentFlow.variables) {
+        currentFlow.variables.forEach((variable) => {
+          if (variable.defaultValue !== undefined && variable.defaultValue !== "") {
+            initialVariables[variable.name] = variable.defaultValue;
+          }
+        });
+      }
+
+      // Inject Global Role if set
+      if (currentFlow.settings?.role) {
+        initialVariables["role"] = currentFlow.settings.role;
+      }
+
+      console.log("[FlowPreview] Starting with defaults:", initialVariables);
+      startPreview(currentFlow.entryScreenId, initialVariables);
     }
-  }, [currentFlow?.entryScreenId, isActive, startPreview]);
+  }, [currentFlow?.entryScreenId, currentFlow?.variables, currentFlow?.settings, isActive, startPreview]);
+
+  // Live Sync: Update 'role' variable when settings change while preview is active
+  useEffect(() => {
+    if (isActive && currentFlow?.settings?.role) {
+      usePreviewStore.getState().setVariable("role", currentFlow.settings.role);
+    }
+  }, [isActive, currentFlow?.settings?.role]);
 
   // Handle closing preview
   const handleClose = useCallback(() => {
@@ -232,16 +256,65 @@ export function FlowPreview() {
 
           {showVariableInspector && (
             <div className="flex-1 overflow-auto p-4">
+              {/* Add Variable Section */}
+              <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-100">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Inject Variable</p>
+                <div className="flex gap-1 mb-2">
+                  <input
+                    id="new-var-name"
+                    placeholder="Name (e.g. role)"
+                    className="flex-1 text-xs border rounded px-2 h-7"
+                  />
+                  <input
+                    id="new-var-value"
+                    placeholder="Value"
+                    className="flex-1 text-xs border rounded px-2 h-7"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-xs"
+                  onClick={() => {
+                    const nameInput = document.getElementById('new-var-name') as HTMLInputElement;
+                    const valueInput = document.getElementById('new-var-value') as HTMLInputElement;
+                    if (nameInput.value && valueInput.value) {
+                      setVariable(nameInput.value, valueInput.value);
+                      nameInput.value = "";
+                      valueInput.value = "";
+                    }
+                  }}
+                >
+                  Add / Set
+                </Button>
+              </div>
+
               {Object.keys(variables).length === 0 ? (
                 <p className="text-xs text-gray-400">No variables collected yet</p>
               ) : (
                 <div className="space-y-2">
                   {Object.entries(variables).map(([key, value]) => (
-                    <div key={key} className="text-xs">
-                      <span className="font-medium text-blue-600">{key}:</span>{" "}
-                      <span className="text-gray-700">
-                        {Array.isArray(value) ? value.join(", ") : String(value)}
-                      </span>
+                    <div key={key} className="text-xs flex items-center justify-between group">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-blue-600">{key}:</span>
+                        <span className="text-gray-700">
+                          {Array.isArray(value) ? value.join(", ") : String(value)}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 opacity-0 group-hover:opacity-100"
+                        onClick={() => {
+                          // Quick remove
+                          // Actually we don't have unsetVariable in store yet, 
+                          // but we can set to empty string?
+                          setVariable(key, "");
+                        }}
+                        title="Clear"
+                      >
+                        <X size={10} />
+                      </Button>
                     </div>
                   ))}
                 </div>

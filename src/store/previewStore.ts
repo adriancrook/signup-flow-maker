@@ -17,7 +17,7 @@ interface PreviewState {
   showVariableInspector: boolean;
 
   // Actions
-  startPreview: (entryScreenId: string) => void;
+  startPreview: (entryScreenId: string, initialVariables?: Record<string, string | number | boolean | string[]>) => void;
   endPreview: () => void;
   goToScreen: (screenId: string) => void;
   goBack: () => void;
@@ -37,12 +37,12 @@ export const usePreviewStore = create<PreviewState>((set, get) => ({
   showVariableInspector: true,
 
   // Start preview from entry point
-  startPreview: (entryScreenId) => {
+  startPreview: (entryScreenId, initialVariables = {}) => {
     set({
       isActive: true,
       currentScreenId: entryScreenId,
       screenHistory: [entryScreenId],
-      variables: {},
+      variables: initialVariables,
     });
   },
 

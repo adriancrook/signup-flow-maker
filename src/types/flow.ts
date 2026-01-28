@@ -54,6 +54,7 @@ export interface FlowSettings {
   allowBackNavigation: boolean;
   autoSaveResponses: boolean;
   theme: "default" | "educator" | "individual";
+  role?: string; // Global role setting for the flow (e.g. "student", "teacher")
 }
 
 // Main Flow interface
@@ -215,6 +216,11 @@ export interface MessageVariant {
   headline: string;
   copy: string;
   style?: "standard" | "toast" | "inline" | "modal" | "overlay";
+  // Nested Logic (Level 2)
+  nestedGroup?: {
+    variable: string;
+    variants: Record<string, MessageVariant>;
+  };
 }
 
 // Message Screen (MSG) - Replaces Affirmation, SocialProof
@@ -244,6 +250,7 @@ export interface FormScreen extends BaseScreen {
   showSocialLogin: boolean;
   socialProviders?: ("google" | "microsoft" | "clever")[];
   collectFields: ("email" | "password" | "firstName" | "lastName")[];
+  roleVariable?: string;
   variants?: Record<string, Partial<FormScreen>>;
   defaultVariant?: string;
 }

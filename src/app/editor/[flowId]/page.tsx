@@ -220,7 +220,7 @@ export default function EditorPage() {
 
             {/* Right Panel - Properties */}
             {rightPanelOpen && (
-              <div className="w-80 flex-shrink-0">
+              <div className="w-[450px] flex-shrink-0 border-l border-gray-200 bg-white">
                 <PropertiesPanel isReadOnly={userRole === 'viewer'} />
               </div>
             )}
