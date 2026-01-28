@@ -118,6 +118,7 @@ export function ScreenRenderer({
       return (
         <FormRenderer
           screen={screen as unknown as FormScreen}
+          variables={variables}
           interpolate={interpolate}
           onNext={onNext}
         />
@@ -615,35 +616,117 @@ function InterstitialRenderer({
 // Form Renderer (formerly AccountCreation)
 function FormRenderer({
   screen,
+  variables,
   interpolate,
   onNext,
 }: {
   screen: FormScreen;
+  variables: Record<string, unknown>;
   interpolate: (text: string) => string;
   onNext: () => void;
 }) {
+  // Resolve variant based on roleVariable
+  let effectiveScreen = screen;
+
+  if (screen.roleVariable && screen.variants) {
+    const roleValue = String(variables[screen.roleVariable] || "");
+    const variant = screen.variants[roleValue] ||
+      (screen.defaultVariant ? screen.variants[screen.defaultVariant] : null);
+
+    if (variant) {
+      effectiveScreen = {
+        ...screen,
+        headline: variant.headline ?? screen.headline,
+        copy: variant.copy ?? screen.copy,
+        collectFields: variant.collectFields ?? screen.collectFields,
+        requiredFields: variant.requiredFields ?? screen.requiredFields,
+        termsVariant: variant.termsVariant ?? screen.termsVariant,
+        showSocialLogin: variant.showSocialLogin ?? screen.showSocialLogin,
+        socialProviders: variant.socialProviders ?? screen.socialProviders,
+      };
+    }
+  }
+
+  const requiredFields = effectiveScreen.requiredFields || [];
+
+  const getTermsText = () => {
+    switch (effectiveScreen.termsVariant) {
+      case "student":
+        return (
+          <label className="flex items-start gap-2 mt-4 cursor-pointer">
+            <input type="checkbox" className="mt-1 rounded" />
+            <span className="text-xs text-gray-500">
+              I am 13 years of age or older and agree to the{" "}
+              <a href="#" className="text-blue-600 underline">Privacy Policy</a> and{" "}
+              <a href="#" className="text-blue-600 underline">Terms of Service</a>, or am being
+              directed to sign up by an adult who has agreed to the{" "}
+              <a href="#" className="text-blue-600 underline">Privacy Policy</a> and{" "}
+              <a href="#" className="text-blue-600 underline">Terms of Service</a>.
+            </span>
+          </label>
+        );
+      case "educator":
+        return (
+          <p className="text-xs text-gray-500 text-center mt-4">
+            By continuing, I agree with the{" "}
+            <a href="#" className="text-blue-600 underline">Privacy Policy</a> and{" "}
+            <a href="#" className="text-blue-600 underline">Terms of Service</a>.
+          </p>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const providerLabels: Record<string, string> = {
+    google: "Google",
+    microsoft: "Microsoft",
+    clever: "Clever",
+    classlink: "ClassLink"
+  };
+
   return (
     <div className="p-6 flex flex-col h-full">
       <div className="flex-1">
-        <h2 className="text-xl font-semibold mb-2">{screen.headline}</h2>
-        <p className="text-gray-600 mb-6">{interpolate(screen.copy)}</p>
+        <h2 className="text-xl font-semibold mb-2">{effectiveScreen.headline}</h2>
+        <p className="text-gray-600 mb-6">{interpolate(effectiveScreen.copy)}</p>
 
         <div className="space-y-4">
-          {screen.collectFields.includes("firstName") && (
-            <Input placeholder="First Name" className="h-12" />
+          {effectiveScreen.collectFields.includes("fullName") && (
+            <div>
+              <label className="text-sm text-gray-700">
+                First and Last Name {requiredFields.includes("fullName") && <span className="text-red-500">*</span>}
+              </label>
+              <Input placeholder="First and Last Name" className="h-12 mt-1" />
+            </div>
           )}
-          {screen.collectFields.includes("lastName") && (
-            <Input placeholder="Last Name" className="h-12" />
+          {effectiveScreen.collectFields.includes("username") && (
+            <div>
+              <label className="text-sm text-gray-700">
+                Username {requiredFields.includes("username") && <span className="text-red-500">*</span>}
+              </label>
+              <Input placeholder="Username" className="h-12 mt-1" />
+            </div>
           )}
-          {screen.collectFields.includes("email") && (
-            <Input type="email" placeholder="Email" className="h-12" />
+          {effectiveScreen.collectFields.includes("email") && (
+            <div>
+              <label className="text-sm text-gray-700">
+                Email {requiredFields.includes("email") && <span className="text-red-500">*</span>}
+              </label>
+              <Input type="email" placeholder="Email" className="h-12 mt-1" />
+            </div>
           )}
-          {screen.collectFields.includes("password") && (
-            <Input type="password" placeholder="Password" className="h-12" />
+          {effectiveScreen.collectFields.includes("password") && (
+            <div>
+              <label className="text-sm text-gray-700">
+                Password {requiredFields.includes("password") && <span className="text-red-500">*</span>}
+              </label>
+              <Input type="password" placeholder="Password" className="h-12 mt-1" />
+            </div>
           )}
         </div>
 
-        {screen.showSocialLogin && screen.socialProviders && (
+        {effectiveScreen.showSocialLogin && effectiveScreen.socialProviders && (
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -655,14 +738,16 @@ function FormRenderer({
             </div>
 
             <div className="mt-4 flex gap-3">
-              {screen.socialProviders.map((provider) => (
+              {effectiveScreen.socialProviders.map((provider) => (
                 <Button key={provider} variant="outline" className="flex-1">
-                  {provider}
+                  {providerLabels[provider] || provider}
                 </Button>
               ))}
             </div>
           </div>
         )}
+
+        {getTermsText()}
       </div>
 
       <Button className="mt-6 w-full" onClick={() => onNext()}>

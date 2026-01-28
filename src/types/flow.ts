@@ -248,8 +248,10 @@ export interface FormScreen extends BaseScreen {
   headline: string;
   copy: string;
   showSocialLogin: boolean;
-  socialProviders?: ("google" | "microsoft" | "clever")[];
-  collectFields: ("email" | "password" | "firstName" | "lastName")[];
+  socialProviders?: ("google" | "microsoft" | "clever" | "classlink")[];
+  collectFields: ("email" | "password" | "fullName" | "username")[];
+  requiredFields?: ("email" | "password" | "fullName" | "username")[];
+  termsVariant?: "student" | "educator" | "none";
   roleVariable?: string;
   variants?: Record<string, Partial<FormScreen>>;
   defaultVariant?: string;

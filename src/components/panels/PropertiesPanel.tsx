@@ -1826,7 +1826,7 @@ interface FormFieldsProps {
 function FormFields({ screen, onUpdate, isLocked, availableVariables, variableValues }: FormFieldsProps) {
   const variantKeys = Object.keys(screen.variants || {});
 
-  const toggleField = (field: "email" | "password" | "firstName" | "lastName") => {
+  const toggleField = (field: "email" | "password" | "fullName" | "username") => {
     const current = screen.collectFields || [];
     const newFields = current.includes(field)
       ? current.filter((f) => f !== field)
@@ -1834,7 +1834,15 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
     onUpdate({ collectFields: newFields });
   };
 
-  const toggleProvider = (provider: "google" | "microsoft" | "clever") => {
+  const toggleRequired = (field: "email" | "password" | "fullName" | "username") => {
+    const current = screen.requiredFields || [];
+    const newRequired = current.includes(field)
+      ? current.filter((f) => f !== field)
+      : [...current, field];
+    onUpdate({ requiredFields: newRequired });
+  };
+
+  const toggleProvider = (provider: "google" | "microsoft" | "clever" | "classlink") => {
     const current = screen.socialProviders || [];
     const newProviders = current.includes(provider)
       ? current.filter((p) => p !== provider)
@@ -1889,7 +1897,7 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
     onUpdate(updates);
   };
 
-  const toggleVariantField = (variantKey: string, field: "email" | "password" | "firstName" | "lastName") => {
+  const toggleVariantField = (variantKey: string, field: "email" | "password" | "fullName" | "username") => {
     const variant = screen.variants?.[variantKey] || {};
     const current = variant.collectFields || screen.collectFields || [];
     const newFields = current.includes(field)
@@ -1899,7 +1907,16 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
     handleVariantChange(variantKey, "collectFields", newFields);
   };
 
-  const toggleVariantProvider = (variantKey: string, provider: "google" | "microsoft" | "clever") => {
+  const toggleVariantRequired = (variantKey: string, field: "email" | "password" | "fullName" | "username") => {
+    const variant = screen.variants?.[variantKey] || {};
+    const current = variant.requiredFields || screen.requiredFields || [];
+    const newRequired = current.includes(field)
+      ? current.filter((f) => f !== field)
+      : [...current, field];
+    handleVariantChange(variantKey, "requiredFields", newRequired);
+  };
+
+  const toggleVariantProvider = (variantKey: string, provider: "google" | "microsoft" | "clever" | "classlink") => {
     const variant = screen.variants?.[variantKey] || {};
     const current = variant.socialProviders || screen.socialProviders || [];
     const newProviders = current.includes(provider)
@@ -1941,19 +1958,59 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
       <div className="space-y-2">
         <Label className="text-xs">Collect Fields</Label>
         <div className="space-y-1">
-          {(["email", "password", "firstName", "lastName"] as const).map((field) => (
-            <label key={field} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={screen.collectFields?.includes(field) || false}
-                onChange={() => toggleField(field)}
-                className="rounded"
-                disabled={isLocked}
-              />
-              {field}
-            </label>
-          ))}
+          {(["fullName", "username", "email", "password"] as const).map((field) => {
+            const isEnabled = screen.collectFields?.includes(field) || false;
+            const isRequired = screen.requiredFields?.includes(field) || false;
+            const fieldLabels: Record<string, string> = {
+              fullName: "First and Last Name",
+              username: "Username",
+              email: "Email",
+              password: "Password"
+            };
+            return (
+              <div key={field} className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isEnabled}
+                    onChange={() => toggleField(field)}
+                    className="rounded"
+                    disabled={isLocked}
+                  />
+                  {fieldLabels[field]}
+                </label>
+                {isEnabled && (
+                  <label className="flex items-center gap-1 text-xs text-gray-500">
+                    <input
+                      type="checkbox"
+                      checked={isRequired}
+                      onChange={() => toggleRequired(field)}
+                      className="rounded w-3 h-3"
+                      disabled={isLocked}
+                    />
+                    required
+                  </label>
+                )}
+              </div>
+            );
+          })}
         </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <Label className="text-xs">Terms & Conditions</Label>
+        <select
+          value={screen.termsVariant || "none"}
+          onChange={(e) => onUpdate({ termsVariant: e.target.value as FormScreen["termsVariant"] })}
+          className="w-full h-8 px-2 text-sm border rounded-md"
+          disabled={isLocked}
+        >
+          <option value="none">None</option>
+          <option value="student">Student (Age 13+ consent)</option>
+          <option value="educator">Educator (Standard)</option>
+        </select>
       </div>
 
       <Separator />
@@ -1976,18 +2033,26 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
         <div className="space-y-2">
           <Label className="text-xs">Social Providers</Label>
           <div className="space-y-1">
-            {(["google", "microsoft", "clever"] as const).map((provider) => (
-              <label key={provider} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={screen.socialProviders?.includes(provider) || false}
-                  onChange={() => toggleProvider(provider)}
-                  className="rounded"
-                  disabled={isLocked}
-                />
-                {provider}
-              </label>
-            ))}
+            {(["google", "microsoft", "clever", "classlink"] as const).map((provider) => {
+              const providerLabels: Record<string, string> = {
+                google: "Google",
+                microsoft: "Microsoft",
+                clever: "Clever",
+                classlink: "ClassLink"
+              };
+              return (
+                <label key={provider} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={screen.socialProviders?.includes(provider) || false}
+                    onChange={() => toggleProvider(provider)}
+                    className="rounded"
+                    disabled={isLocked}
+                  />
+                  {providerLabels[provider]}
+                </label>
+              );
+            })}
           </div>
         </div>
       )}
@@ -2011,12 +2076,15 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
           const variant = screen.variants?.[key];
           if (!variant) return null;
 
-          // Determine active custom settings or inherit from default
           const showSocial = variant.showSocialLogin !== undefined ? variant.showSocialLogin : screen.showSocialLogin;
           const collectFields = variant.collectFields || screen.collectFields || [];
+          const requiredFields = variant.requiredFields || screen.requiredFields || [];
           const socialProviders = variant.socialProviders || screen.socialProviders || [];
+          const termsVariant = variant.termsVariant || screen.termsVariant || "none";
           const fieldsInherited = variant.collectFields === undefined;
+          const requiredInherited = variant.requiredFields === undefined;
           const socialInherited = variant.socialProviders === undefined;
+          const termsInherited = variant.termsVariant === undefined;
 
           return (
             <div className="space-y-4">
@@ -2041,21 +2109,59 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase text-gray-500">Fields</Label>
                 <div className="space-y-1 pl-1">
-                  {(["email", "password", "firstName", "lastName"] as const).map((field) => (
-                    <label key={field} className="flex items-center gap-2 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={collectFields.includes(field)}
-                        onChange={() => toggleVariantField(key, field)}
-                        className="rounded"
-                        disabled={isLocked}
-                      />
-                      <span className={collectFields.includes(field) ? "text-black" : "text-gray-500"}>
-                        {field} {fieldsInherited ? "(inherited)" : ""}
-                      </span>
-                    </label>
-                  ))}
+                  {(["fullName", "username", "email", "password"] as const).map((field) => {
+                    const fieldLabels: Record<string, string> = {
+                      fullName: "Name",
+                      username: "Username",
+                      email: "Email",
+                      password: "Password"
+                    };
+                    const isEnabled = collectFields.includes(field);
+                    const isRequired = requiredFields.includes(field);
+                    return (
+                      <div key={field} className="flex items-center justify-between text-xs">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isEnabled}
+                            onChange={() => toggleVariantField(key, field)}
+                            className="rounded"
+                            disabled={isLocked}
+                          />
+                          <span className={isEnabled ? "text-black" : "text-gray-500"}>
+                            {fieldLabels[field]} {fieldsInherited ? "(inherited)" : ""}
+                          </span>
+                        </label>
+                        {isEnabled && (
+                          <label className="flex items-center gap-1 text-gray-400">
+                            <input
+                              type="checkbox"
+                              checked={isRequired}
+                              onChange={() => toggleVariantRequired(key, field)}
+                              className="rounded w-3 h-3"
+                              disabled={isLocked}
+                            />
+                            req
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase text-gray-500">Terms</Label>
+                <select
+                  value={termsVariant}
+                  onChange={(e) => handleVariantChange(key, "termsVariant", e.target.value)}
+                  className="w-full h-7 px-2 text-xs border rounded-md"
+                  disabled={isLocked}
+                >
+                  <option value="none">None {termsInherited ? "(inherited)" : ""}</option>
+                  <option value="student">Student (Age 13+)</option>
+                  <option value="educator">Educator</option>
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -2073,20 +2179,28 @@ function FormFields({ screen, onUpdate, isLocked, availableVariables, variableVa
 
                 {showSocial && (
                   <div className="space-y-1 pl-1 ml-4 border-l-2 border-gray-200 pl-2">
-                    {(["google", "microsoft", "clever"] as const).map((provider) => (
-                      <label key={provider} className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={socialProviders.includes(provider)}
-                          onChange={() => toggleVariantProvider(key, provider)}
-                          className="rounded"
-                          disabled={isLocked}
-                        />
-                        <span className={socialProviders.includes(provider) ? "text-black" : "text-gray-500"}>
-                          {provider} {socialInherited ? "(inherited)" : ""}
-                        </span>
-                      </label>
-                    ))}
+                    {(["google", "microsoft", "clever", "classlink"] as const).map((provider) => {
+                      const providerLabels: Record<string, string> = {
+                        google: "Google",
+                        microsoft: "Microsoft",
+                        clever: "Clever",
+                        classlink: "ClassLink"
+                      };
+                      return (
+                        <label key={provider} className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={socialProviders.includes(provider)}
+                            onChange={() => toggleVariantProvider(key, provider)}
+                            className="rounded"
+                            disabled={isLocked}
+                          />
+                          <span className={socialProviders.includes(provider) ? "text-black" : "text-gray-500"}>
+                            {providerLabels[provider]} {socialInherited ? "(inherited)" : ""}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
               </div>
