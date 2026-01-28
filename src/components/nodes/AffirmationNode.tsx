@@ -4,7 +4,7 @@ import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { MessageSquareHeart } from "lucide-react";
 import { BaseNode } from "./BaseNode";
-import type { FlowNodeData, MessageScreen } from "@/types/flow";
+import type { FlowNodeData, MessageScreen, MessageVariant } from "@/types/flow";
 
 function AffirmationNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FlowNodeData;
@@ -12,7 +12,20 @@ function AffirmationNodeComponent({ data, selected }: NodeProps) {
 
   // Determine if this is conditional mode (has conditionVariable and variants)
   const isConditional = screen.conditionVariable && screen.variants && Object.keys(screen.variants).length > 0;
-  const variantKeys = Object.keys(screen.variants || {});
+  const variantEntries = Object.entries(screen.variants || {});
+
+  // Helper to count total nested conditions across all variants
+  const getTotalNestedCount = () => {
+    let count = 0;
+    for (const [, variant] of variantEntries) {
+      if (variant.nestedGroup?.variants) {
+        count += Object.keys(variant.nestedGroup.variants).length;
+      }
+    }
+    return count;
+  };
+
+  const totalNestedConditions = getTotalNestedCount();
 
   return (
     <BaseNode
@@ -23,34 +36,62 @@ function AffirmationNodeComponent({ data, selected }: NodeProps) {
     >
       <div className="space-y-2">
         {isConditional ? (
-          // Conditional mode - show variants
+          // Conditional mode - show variants with nested conditions
           <>
             <p className="text-xs text-green-600">
               Based on: [{screen.conditionVariable}]
             </p>
-            <div className="flex flex-wrap gap-1">
-              {variantKeys.map((key) => (
-                <span
-                  key={key}
-                  className={`text-[10px] rounded px-1.5 py-0.5 ${key === screen.defaultVariant
+
+            {/* Show up to 3 variants with their nested conditions */}
+            <div className="space-y-1.5">
+              {variantEntries.slice(0, 3).map(([key, variant]: [string, MessageVariant]) => {
+                const nestedKeys = variant.nestedGroup?.variants
+                  ? Object.keys(variant.nestedGroup.variants)
+                  : [];
+                const nestedVar = variant.nestedGroup?.variable;
+
+                return (
+                  <div
+                    key={key}
+                    className={`text-xs rounded px-2 py-1.5 ${key === screen.defaultVariant
                       ? "bg-green-200 text-green-800"
-                      : "bg-gray-100 text-gray-600"
-                    }`}
-                >
-                  {key}
-                </span>
-              ))}
+                      : "bg-gray-50 text-gray-700"
+                      }`}
+                  >
+                    <div className="font-medium">{key}</div>
+
+                    {/* Show headline preview */}
+                    {variant.headline && (
+                      <div className="text-[10px] opacity-75 truncate mt-0.5">
+                        &ldquo;{variant.headline}&rdquo;
+                      </div>
+                    )}
+
+                    {/* Show nested conditions if present */}
+                    {nestedKeys.length > 0 && nestedVar && (
+                      <div className="mt-1 text-[10px] text-blue-600">
+                        + {nestedKeys.length} AND IF [{nestedVar}]
+                        <span className="text-gray-400 ml-1">
+                          ({nestedKeys.slice(0, 2).join(", ")}{nestedKeys.length > 2 ? "..." : ""})
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {variantEntries.length > 3 && (
+                <p className="text-xs text-gray-400 pl-2">
+                  +{variantEntries.length - 3} more variants
+                </p>
+              )}
             </div>
 
-            {screen.defaultVariant && screen.variants?.[screen.defaultVariant] && (
-              <div className="bg-green-100 rounded p-2">
-                <p className="text-xs font-medium text-green-800">
-                  {screen.variants[screen.defaultVariant].headline}
-                </p>
-                <p className="text-[10px] text-green-700 mt-1 line-clamp-2">
-                  {screen.variants[screen.defaultVariant].copy}
-                </p>
-              </div>
+            {/* Summary of nested conditions */}
+            {totalNestedConditions > 0 && (
+              <p className="text-[10px] text-blue-500 bg-blue-50 rounded px-2 py-0.5">
+                {totalNestedConditions} total AND IF conditions
+              </p>
             )}
           </>
         ) : (
@@ -80,3 +121,4 @@ function AffirmationNodeComponent({ data, selected }: NodeProps) {
 }
 
 export const AffirmationNode = memo(AffirmationNodeComponent);
+
