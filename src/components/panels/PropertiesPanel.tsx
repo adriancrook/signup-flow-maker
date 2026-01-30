@@ -44,6 +44,7 @@ import { nanoid } from "nanoid";
 import { componentTemplates } from "@/data/componentRegistry";
 import { getComponentAvailability } from "@/lib/componentUtils";
 import { SmartVariantsSection } from "./SmartVariantsSection";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface PropertiesPanelProps {
   isReadOnly?: boolean;
@@ -96,11 +97,13 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
     };
   }, [currentFlow]);
 
+  const debouncedComponentCode = useDebounce(selectedScreen?.componentCode, 500);
+
   useEffect(() => {
-    if (selectedScreen?.componentCode) {
+    if (debouncedComponentCode) {
       setIsLoadingUsage(true);
       import("@/services/sharedComponentService").then(({ sharedComponentService }) => {
-        sharedComponentService.findComponentUsage(selectedScreen.componentCode!)
+        sharedComponentService.findComponentUsage(debouncedComponentCode!)
           .then(data => {
             setUsageList(data);
           })
@@ -110,7 +113,7 @@ export function PropertiesPanel({ isReadOnly }: PropertiesPanelProps) {
     } else {
       setUsageList([]);
     }
-  }, [selectedScreen?.componentCode]);
+  }, [debouncedComponentCode]);
 
   if (selectedLibraryItemId && !selectedNode) {
     let template = componentTemplates.find((t) => t.id === selectedLibraryItemId);
