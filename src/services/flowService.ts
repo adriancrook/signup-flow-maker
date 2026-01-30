@@ -2,6 +2,9 @@ import { supabase } from "@/lib/supabase/client";
 import { Flow, FlowCategory, TargetPortal } from "@/types/flow";
 import { Json } from "@/types/supabase";
 
+// Cache for organization lookups to avoid redundant DB calls
+const organizationCache = new Map<string, string>();
+
 export interface FlowSummary {
     id: string;
     name: string;
@@ -155,17 +158,9 @@ export const flowService = {
         }
     },
 
-    // Create a NEW flow in the database
-    async createFlow(flow: Flow): Promise<string> {
-        // 1. Get user profile to find organization_id
-        const userResponse = await supabase.auth.getUser();
-        console.log("createFlow: getUser response:", userResponse);
-
-        const userId = userResponse.data.user?.id;
-
-        if (!userId) {
-            console.error("createFlow: User not authenticated. Error:", userResponse.error);
-            throw new Error(`User not authenticated: ${userResponse.error?.message || "No session"}`);
+    async getOrganizationId(userId: string): Promise<string> {
+        if (organizationCache.has(userId)) {
+            return organizationCache.get(userId)!;
         }
 
         const { data: profile, error: profileError } = await supabase
@@ -182,13 +177,33 @@ export const flowService = {
             throw new Error("User does not belong to an organization. Cannot create flow.");
         }
 
+        organizationCache.set(userId, profile.organization_id);
+        return profile.organization_id;
+    },
+
+    // Create a NEW flow in the database
+    async createFlow(flow: Flow): Promise<string> {
+        // 1. Get user profile to find organization_id
+        const userResponse = await supabase.auth.getUser();
+        console.log("createFlow: getUser response:", userResponse);
+
+        const userId = userResponse.data.user?.id;
+
+        if (!userId) {
+            console.error("createFlow: User not authenticated. Error:", userResponse.error);
+            throw new Error(`User not authenticated: ${userResponse.error?.message || "No session"}`);
+        }
+
+        // Use the cached lookup helper
+        const organizationId = await this.getOrganizationId(userId);
+
         // 2. Insert into flows table
         const { data: newFlow, error: createError } = await supabase
             .from("flows")
             .insert({
                 name: flow.name,
                 description: flow.description || "Created via Editor",
-                organization_id: profile.organization_id,
+                organization_id: organizationId,
                 is_locked: false
             })
             .select("id")
